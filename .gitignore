@@ -1,0 +1,7 @@
+build/
+Payload/
+*.ipa
+PortalAlley.xcodeproj/
+DerivedData/
+__pycache__/
+.DS_Store

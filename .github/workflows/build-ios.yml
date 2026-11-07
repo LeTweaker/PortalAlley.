@@ -1,0 +1,75 @@
+name: Build iOS app (unsigned IPA)
+
+# Builds on GitHub's macOS runners - no Mac needed on your side.
+# The resulting PortalAlley-unsigned.ipa is signed and installed from Windows
+# with Sideloadly using a free Apple ID (see docs/INSTALL_WINDOWS.md).
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test-core:
+    name: PortalCore unit tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+      - name: swift test
+        run: swift test --package-path PortalCore 2>&1 | tee core-tests.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-test-log
+          path: core-tests.log
+
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+      - name: Metal toolchain (separate download since Xcode 26; no-op on older Xcode)
+        run: xcodebuild -downloadComponent MetalToolchain || true
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build (Release, device, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project PortalAlley.xcodeproj -scheme PortalAlley \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log
+      - name: Verify bundle contents
+        run: |
+          APP=build/Build/Products/Release-iphoneos/PortalAlley.app
+          test -f "$APP/default.metallib" && echo "metallib OK"
+          test -f "$APP/Portal/manifest.json" && echo "assets OK"
+          xcrun metal-nm "$APP/default.metallib" 2>/dev/null | grep -E "alley|portal|contact|floor|preview" || true
+          du -sh "$APP"
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/PortalAlley.app Payload/
+          zip -qry PortalAlley-unsigned.ipa Payload
+          ls -la PortalAlley-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PortalAlley-unsigned-ipa
+          path: PortalAlley-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build.log

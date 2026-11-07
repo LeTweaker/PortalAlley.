@@ -1,0 +1,1699 @@
+{
+ "version": 1,
+ "generatedBy": "Tools/assetgen/build.py",
+ "dimensions": {
+  "openHalfWidth": 0.48,
+  "openY0": 0.03,
+  "openY1": 2.05,
+  "outerHalfWidth": 0.6499999999999999,
+  "outerTop": 2.2199999999999998,
+  "frameBackZ": -0.12,
+  "frameFrontZ": 0.12,
+  "apertureLeafZ": -0.1225,
+  "occluderZ": -0.125,
+  "holeHalfWidth": 0.515,
+  "holeY0": -0.05,
+  "holeY1": 2.085,
+  "veilZ": -0.1235,
+  "seamZ": -0.121
+ },
+ "alley": {
+  "groundY": -0.12,
+  "leftFacadeX": -1.45,
+  "rightFacadeX": 1.65,
+  "junctionZ": -17.5
+ },
+ "textures": {
+  "tile_albedo": {
+   "file": "textures/tile_albedo.png",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "tile_packed": {
+   "file": "textures/tile_packed.png",
+   "semantic": "raw",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "concrete_albedo": {
+   "file": "textures/concrete_albedo.png",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "concrete_packed": {
+   "file": "textures/concrete_packed.png",
+   "semantic": "raw",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "plaster_albedo": {
+   "file": "textures/plaster_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "plaster_packed": {
+   "file": "textures/plaster_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "metal_albedo": {
+   "file": "textures/metal_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "metal_packed": {
+   "file": "textures/metal_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "shutter_albedo": {
+   "file": "textures/shutter_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "shutter_packed": {
+   "file": "textures/shutter_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "wood_albedo": {
+   "file": "textures/wood_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "wood_packed": {
+   "file": "textures/wood_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "canvas_albedo": {
+   "file": "textures/canvas_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "canvas_packed": {
+   "file": "textures/canvas_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "asphalt_albedo": {
+   "file": "textures/asphalt_albedo.png",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "asphalt_packed": {
+   "file": "textures/asphalt_packed.png",
+   "semantic": "raw",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "grate_albedo": {
+   "file": "textures/grate_albedo.png",
+   "semantic": "color",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "grate_packed": {
+   "file": "textures/grate_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "manhole_albedo": {
+   "file": "textures/manhole_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "manhole_packed": {
+   "file": "textures/manhole_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "puddles": {
+   "file": "textures/puddles.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "far_windows": {
+   "file": "textures/far_windows.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "sky": {
+   "file": "textures/sky.png",
+   "semantic": "color",
+   "size": [
+    1024,
+    512
+   ]
+  },
+  "rain": {
+   "file": "textures/rain.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    1024
+   ]
+  },
+  "steam": {
+   "file": "textures/steam.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "contact_shadow": {
+   "file": "textures/contact_shadow.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    256
+   ]
+  },
+  "spill": {
+   "file": "textures/spill.png",
+   "semantic": "color",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "white": {
+   "file": "textures/white.png",
+   "semantic": "color",
+   "size": [
+    4,
+    4
+   ]
+  },
+  "black": {
+   "file": "textures/black.png",
+   "semantic": "raw",
+   "size": [
+    4,
+    4
+   ]
+  },
+  "neutral_packed": {
+   "file": "textures/neutral_packed.png",
+   "semantic": "raw",
+   "size": [
+    4,
+    4
+   ]
+  },
+  "frame_brushed_albedo": {
+   "file": "textures/frame_brushed_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "frame_brushed_rough": {
+   "file": "textures/frame_brushed_rough.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "frame_trim_albedo": {
+   "file": "textures/frame_trim_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "frame_trim_rough": {
+   "file": "textures/frame_trim_rough.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "frame_ceramic_albedo": {
+   "file": "textures/frame_ceramic_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "frame_ceramic_rough": {
+   "file": "textures/frame_ceramic_rough.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "signs": {
+   "file": "textures/signs.png",
+   "semantic": "color",
+   "size": [
+    2048,
+    2048
+   ]
+  },
+  "road_paint": {
+   "file": "textures/road_paint.png",
+   "semantic": "color",
+   "size": [
+    512,
+    1024
+   ]
+  },
+  "ticker": {
+   "file": "textures/ticker.png",
+   "semantic": "color",
+   "size": [
+    768,
+    64
+   ]
+  },
+  "interiors": {
+   "file": "textures/interiors.png",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  }
+ },
+ "materials": {
+  "tile_beige": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "tile_albedo",
+    "custom": "tile_packed"
+   },
+   "tint": [
+    0.92,
+    0.84,
+    0.7
+   ],
+   "params": [
+    0.45,
+    0.9,
+    0.0,
+    1.0
+   ]
+  },
+  "tile_grey": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "tile_albedo",
+    "custom": "tile_packed"
+   },
+   "tint": [
+    0.6,
+    0.65,
+    0.7
+   ],
+   "params": [
+    0.45,
+    0.9,
+    0.0,
+    1.0
+   ]
+  },
+  "concrete": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "concrete_albedo",
+    "custom": "concrete_packed"
+   },
+   "tint": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "params": [
+    0.4,
+    0.4,
+    0.0,
+    1.0
+   ]
+  },
+  "concrete_dark": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "concrete_albedo",
+    "custom": "concrete_packed"
+   },
+   "tint": [
+    0.55,
+    0.55,
+    0.58
+   ],
+   "params": [
+    0.4,
+    0.4,
+    0.0,
+    1.0
+   ]
+  },
+  "plaster_cream": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "plaster_albedo",
+    "custom": "plaster_packed"
+   },
+   "tint": [
+    0.95,
+    0.87,
+    0.72
+   ],
+   "params": [
+    0.3,
+    0.3,
+    0.0,
+    1.0
+   ]
+  },
+  "plaster_green": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "plaster_albedo",
+    "custom": "plaster_packed"
+   },
+   "tint": [
+    0.66,
+    0.82,
+    0.74
+   ],
+   "params": [
+    0.3,
+    0.3,
+    0.0,
+    1.0
+   ]
+  },
+  "plaster_rust": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "plaster_albedo",
+    "custom": "plaster_packed"
+   },
+   "tint": [
+    0.52,
+    0.27,
+    0.19
+   ],
+   "params": [
+    0.3,
+    0.3,
+    0.0,
+    1.0
+   ]
+  },
+  "metal_grey": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    0.55,
+    0.57,
+    0.6
+   ],
+   "params": [
+    0.5,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "metal_dark": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    0.16,
+    0.16,
+    0.18
+   ],
+   "params": [
+    0.5,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "metal_white": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    0.9,
+    0.9,
+    0.88
+   ],
+   "params": [
+    0.5,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "shutter": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "shutter_albedo",
+    "custom": "shutter_packed"
+   },
+   "tint": [
+    0.72,
+    0.75,
+    0.79
+   ],
+   "params": [
+    0.5,
+    0.9,
+    0.0,
+    1.0
+   ]
+  },
+  "wood_dark": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "wood_albedo",
+    "custom": "wood_packed"
+   },
+   "tint": [
+    0.85,
+    0.75,
+    0.65
+   ],
+   "params": [
+    0.3,
+    0.5,
+    0.0,
+    1.0
+   ]
+  },
+  "canvas": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "canvas_albedo",
+    "custom": "canvas_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.6,
+    0.6,
+    0.0,
+    1.0
+   ]
+  },
+  "crate_blue": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    0.08,
+    0.28,
+    0.75
+   ],
+   "params": [
+    0.6,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "crate_yellow": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    0.95,
+    0.72,
+    0.08
+   ],
+   "params": [
+    0.6,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "rubber_black": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "concrete_albedo",
+    "custom": "concrete_packed"
+   },
+   "tint": [
+    0.1,
+    0.1,
+    0.1
+   ],
+   "params": [
+    0.2,
+    0.3,
+    0.0,
+    1.0
+   ]
+  },
+  "cable": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    0.06,
+    0.06,
+    0.07
+   ],
+   "params": [
+    0.5,
+    0.8,
+    0.0,
+    1.0
+   ]
+  },
+  "cone": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "metal_albedo",
+    "custom": "metal_packed"
+   },
+   "tint": [
+    1.0,
+    0.32,
+    0.06
+   ],
+   "params": [
+    0.6,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "pole_sleeve": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.8,
+    0.8,
+    0.8
+   ],
+   "params": [
+    0.5,
+    0.8,
+    0.0,
+    1.0
+   ]
+  },
+  "concrete_ground": {
+   "shader": "alleyGround",
+   "textures": {
+    "baseColor": "concrete_albedo",
+    "custom": "concrete_packed",
+    "emissiveColor": "puddles"
+   },
+   "tint": [
+    0.8,
+    0.8,
+    0.82
+   ],
+   "params": [
+    0.75,
+    1.0,
+    0.6,
+    1.0
+   ]
+  },
+  "concrete_stoop": {
+   "shader": "alleyGround",
+   "textures": {
+    "baseColor": "concrete_albedo",
+    "custom": "concrete_packed",
+    "emissiveColor": "black"
+   },
+   "tint": [
+    0.62,
+    0.62,
+    0.64
+   ],
+   "params": [
+    0.45,
+    0.45,
+    0.2,
+    1.0
+   ]
+  },
+  "asphalt": {
+   "shader": "alleyGround",
+   "textures": {
+    "baseColor": "asphalt_albedo",
+    "custom": "asphalt_packed",
+    "emissiveColor": "puddles"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "grate": {
+   "shader": "alleyGround",
+   "textures": {
+    "baseColor": "grate_albedo",
+    "custom": "grate_packed",
+    "emissiveColor": "puddles"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.9,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "manhole": {
+   "shader": "alleyGround",
+   "textures": {
+    "baseColor": "manhole_albedo",
+    "custom": "manhole_packed",
+    "emissiveColor": "puddles"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.9,
+    1.0,
+    0.3,
+    1.0
+   ]
+  },
+  "road_paint": {
+   "shader": "alleyDecal",
+   "textures": {
+    "baseColor": "road_paint",
+    "custom": "neutral_packed",
+    "emissiveColor": "puddles"
+   },
+   "tint": [
+    0.85,
+    0.85,
+    0.82
+   ],
+   "params": [
+    0.9,
+    1.0,
+    0.85,
+    1.0
+   ],
+   "blend": "transparent"
+  },
+  "sign_static": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.55,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "sign_flicker": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.75,
+    1.0,
+    0.0,
+    1.0
+   ]
+  },
+  "sign_soft": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.85,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "sign_dim": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.55,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "sign_ticker": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "ticker",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.6,
+    0.0,
+    0.045,
+    1.0
+   ]
+  },
+  "vending": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.95,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "lantern": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "signs",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.7,
+    2.0,
+    0.0,
+    1.0
+   ]
+  },
+  "bulb": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1.0,
+    0.78,
+    0.5
+   ],
+   "params": [
+    2.6,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "aviation": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1.0,
+    0.06,
+    0.04
+   ],
+   "params": [
+    3.0,
+    5.0,
+    0.0,
+    1.0
+   ]
+  },
+  "lamp_lens": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.85,
+    0.93,
+    1.0
+   ],
+   "params": [
+    3.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "passage_red": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1.0,
+    0.12,
+    0.08
+   ],
+   "params": [
+    1.8,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "far_windows": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "far_windows",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.85,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "windows": {
+   "shader": "alleyWindow",
+   "textures": {
+    "baseColor": "interiors",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.25,
+    0.05,
+    0.0,
+    1.0
+   ]
+  },
+  "windows_upper": {
+   "shader": "alleyWindow",
+   "textures": {
+    "baseColor": "interiors",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.8,
+    0.035,
+    0.0,
+    1.0
+   ]
+  },
+  "sky": {
+   "shader": "alleySky",
+   "textures": {
+    "baseColor": "sky",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.0,
+    0,
+    0,
+    1.0
+   ]
+  },
+  "rain_0": {
+   "shader": "alleyRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    5.2,
+    0.0,
+    0.42,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "rain_1": {
+   "shader": "alleyRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    5.0,
+    0.137,
+    0.4,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "rain_2": {
+   "shader": "alleyRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    4.8,
+    0.274,
+    0.36,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "rain_3": {
+   "shader": "alleyRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    4.6,
+    0.41100000000000003,
+    0.33,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "rain_4": {
+   "shader": "alleyRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    4.4,
+    0.548,
+    0.3,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "rain_5": {
+   "shader": "alleyRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    4.4,
+    0.685,
+    0.3,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "steam": {
+   "shader": "alleySteam",
+   "textures": {
+    "baseColor": "steam",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    0.95,
+    0.9
+   ],
+   "params": [
+    0.18,
+    0.32,
+    0,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "frame_body": {
+   "shader": "pbr",
+   "textures": {
+    "baseColor": "frame_brushed_albedo",
+    "roughness": "frame_brushed_rough"
+   },
+   "metallic": 0.85,
+   "tint": [
+    1,
+    1,
+    1
+   ]
+  },
+  "frame_trim": {
+   "shader": "pbr",
+   "textures": {
+    "baseColor": "frame_trim_albedo",
+    "roughness": "frame_trim_rough"
+   },
+   "metallic": 1.0,
+   "tint": [
+    1,
+    1,
+    1
+   ]
+  },
+  "frame_ceramic": {
+   "shader": "pbr",
+   "textures": {
+    "baseColor": "frame_ceramic_albedo",
+    "roughness": "frame_ceramic_rough"
+   },
+   "metallic": 0.0,
+   "tint": [
+    1,
+    1,
+    1
+   ]
+  },
+  "frame_bolt": {
+   "shader": "pbr",
+   "color": [
+    0.42,
+    0.42,
+    0.44
+   ],
+   "roughness": 0.3,
+   "metallic": 1.0
+  },
+  "frame_detail": {
+   "shader": "pbr",
+   "color": [
+    0.02,
+    0.02,
+    0.022
+   ],
+   "roughness": 0.75,
+   "metallic": 0.0
+  },
+  "frame_light": {
+   "shader": "portalEdge",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.3,
+    0.86,
+    1.0
+   ],
+   "params": [
+    0.6,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "frame_led": {
+   "shader": "portalEdge",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1.0,
+    0.55,
+    0.12
+   ],
+   "params": [
+    0.8,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "occluder": {
+   "shader": "occlusion"
+  },
+  "contact_shadow": {
+   "shader": "contactShadow",
+   "textures": {
+    "baseColor": "contact_shadow",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0,
+    0,
+    0
+   ],
+   "params": [
+    0.75,
+    0,
+    0,
+    0
+   ],
+   "blend": "transparent"
+  },
+  "spill": {
+   "shader": "floorSpill",
+   "textures": {
+    "baseColor": "spill",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.1,
+    0,
+    0,
+    0
+   ],
+   "blend": "transparent"
+  },
+  "veil": {
+   "shader": "portalVeil",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.05,
+    0.07,
+    0.12
+   ],
+   "params": [
+    0.0,
+    0,
+    0,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "seam": {
+   "shader": "portalSeam",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.45,
+    0.92,
+    1.0
+   ],
+   "params": [
+    0.0,
+    0.01,
+    0,
+    0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  },
+  "footprint": {
+   "shader": "previewGhost",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.45,
+    0.92,
+    1.0
+   ],
+   "params": [
+    0.9,
+    0,
+    0,
+    0
+   ],
+   "blend": "transparent",
+   "cull": "none"
+  }
+ },
+ "meshes": {
+  "frame": {
+   "file": "meshes/frame.pmsh",
+   "vertices": 3536,
+   "triangles": 1892,
+   "bytes": 136062
+  },
+  "portal_aux": {
+   "file": "meshes/portal_aux.pmsh",
+   "vertices": 60,
+   "triangles": 30,
+   "bytes": 2468
+  },
+  "alley": {
+   "file": "meshes/alley.pmsh",
+   "vertices": 31384,
+   "triangles": 24710,
+   "bytes": 1293600
+  }
+ },
+ "lights": [
+  {
+   "name": "ramen_front",
+   "position": [
+    0.0,
+    1.4,
+    -19.45
+   ],
+   "color": [
+    1.0,
+    0.64,
+    0.33
+   ],
+   "intensity": 2.7,
+   "radius": 6.5,
+   "flicker": 0
+  },
+  {
+   "name": "near_lamp",
+   "position": [
+    1.32,
+    2.45,
+    -1.6
+   ],
+   "color": [
+    1.0,
+    0.68,
+    0.38
+   ],
+   "intensity": 1.05,
+   "radius": 3.4,
+   "flicker": 0
+  },
+  {
+   "name": "vending",
+   "position": [
+    0.86,
+    0.95,
+    -3.65
+   ],
+   "color": [
+    0.72,
+    0.86,
+    1.0
+   ],
+   "intensity": 1.3,
+   "radius": 3.4,
+   "flicker": 0
+  },
+  {
+   "name": "cafe_window",
+   "position": [
+    -1.0,
+    1.15,
+    -5.05
+   ],
+   "color": [
+    1.0,
+    0.6,
+    0.28
+   ],
+   "intensity": 1.55,
+   "radius": 4.5,
+   "flicker": 0
+  },
+  {
+   "name": "lanterns",
+   "position": [
+    1.0,
+    1.9,
+    -9.2
+   ],
+   "color": [
+    1.0,
+    0.3,
+    0.1
+   ],
+   "intensity": 1.7,
+   "radius": 3.8,
+   "flicker": 2
+  },
+  {
+   "name": "laundromat",
+   "position": [
+    1.25,
+    1.45,
+    -5.95
+   ],
+   "color": [
+    0.78,
+    0.94,
+    1.0
+   ],
+   "intensity": 1.35,
+   "radius": 4.2,
+   "flicker": 0
+  },
+  {
+   "name": "bar_neon",
+   "position": [
+    -0.9,
+    4.3,
+    -7.55
+   ],
+   "color": [
+    0.22,
+    0.85,
+    1.0
+   ],
+   "intensity": 2.1,
+   "radius": 4.4,
+   "flicker": 1
+  },
+  {
+   "name": "sign_stack",
+   "position": [
+    -0.85,
+    5.0,
+    -11.4
+   ],
+   "color": [
+    1.0,
+    0.26,
+    0.62
+   ],
+   "intensity": 2.0,
+   "radius": 5.0,
+   "flicker": 0
+  },
+  {
+   "name": "arch_bulbs",
+   "position": [
+    0.15,
+    2.8,
+    -6.1
+   ],
+   "color": [
+    1.0,
+    0.72,
+    0.4
+   ],
+   "intensity": 1.3,
+   "radius": 3.8,
+   "flicker": 0
+  },
+  {
+   "name": "street_lamp",
+   "position": [
+    3.6,
+    4.3,
+    -18.55
+   ],
+   "color": [
+    0.8,
+    0.9,
+    1.0
+   ],
+   "intensity": 2.0,
+   "radius": 8.0,
+   "flicker": 0
+  },
+  {
+   "name": "pharmacy",
+   "position": [
+    1.3,
+    2.4,
+    -14.7
+   ],
+   "color": [
+    0.42,
+    1.0,
+    0.76
+   ],
+   "intensity": 1.4,
+   "radius": 4.4,
+   "flicker": 0
+  },
+  {
+   "name": "izakaya",
+   "position": [
+    1.3,
+    1.0,
+    -9.9
+   ],
+   "color": [
+    1.0,
+    0.58,
+    0.26
+   ],
+   "intensity": 1.1,
+   "radius": 3.4,
+   "flicker": 0
+  },
+  {
+   "name": "bookshop",
+   "position": [
+    -1.1,
+    0.3,
+    -10.4
+   ],
+   "color": [
+    1.0,
+    0.6,
+    0.3
+   ],
+   "intensity": 1.1,
+   "radius": 2.8,
+   "flicker": 0
+  },
+  {
+   "name": "ramen_sign",
+   "position": [
+    1.45,
+    4.4,
+    -19.55
+   ],
+   "color": [
+    1.0,
+    0.16,
+    0.1
+   ],
+   "intensity": 1.5,
+   "radius": 4.8,
+   "flicker": 0
+  },
+  {
+   "name": "store",
+   "position": [
+    5.8,
+    1.4,
+    -19.3
+   ],
+   "color": [
+    0.9,
+    0.97,
+    1.0
+   ],
+   "intensity": 2.0,
+   "radius": 6.0,
+   "flicker": 0
+  },
+  {
+   "name": "car_sweep",
+   "position": [
+    12.0,
+    0.7,
+    -18.7
+   ],
+   "color": [
+    1.0,
+    0.94,
+    0.84
+   ],
+   "intensity": 3.2,
+   "radius": 7.5,
+   "flicker": 3
+  }
+ ],
+ "lowTierLightCount": 10,
+ "audio": {
+  "rain_loop.wav": 24.0,
+  "city_loop.wav": 30.0,
+  "hum_loop.wav": 12.0,
+  "portal_open.wav": 2.2,
+  "portal_close.wav": 0.9
+ }
+}
