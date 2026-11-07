@@ -165,10 +165,14 @@ final class PortalRig {
             setParams(frameLight, SIMD4(0.6 * l.edgeIntensity, l.edgeSweep, 0, 0))
         }
         if abs(l.frameOpacity - lastLook.frameOpacity) > 0.002 {
-            if l.frameOpacity >= 0.999 {
-                frameRoot.components.remove(OpacityComponent.self)     // opaque fast path
-            } else {
-                frameRoot.components.set(OpacityComponent(opacity: max(0, l.frameOpacity)))
+            // OpacityComponent is iOS 18+. On iOS 17 the doorway shows/hides
+            // without the fade (isEnabled below); everything else is identical.
+            if #available(iOS 18.0, *) {
+                if l.frameOpacity >= 0.999 {
+                    frameRoot.components.remove(OpacityComponent.self)     // opaque fast path
+                } else {
+                    frameRoot.components.set(OpacityComponent(opacity: max(0, l.frameOpacity)))
+                }
             }
             frameRoot.isEnabled = l.frameOpacity > 0.001
         }

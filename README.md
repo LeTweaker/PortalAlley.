@@ -23,8 +23,8 @@ Install guide: **[docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md)**. If you do
 
 ## Requirements
 
-- iPhone with A12 or newer and iOS 17.0+ (ARKit world tracking, RealityKit custom materials,
-  `OpacityComponent`). Performance baseline and "high" tier: **iPhone 15 Pro (A17 Pro)**.
+- iPhone with A12 or newer and iOS 17.0+ (ARKit world tracking, RealityKit custom materials).
+  On iOS 17 the doorway appears/disappears without its fade (`OpacityComponent` is iOS 18+). Performance baseline and "high" tier: **iPhone 15 Pro (A17 Pro)**.
 - LiDAR is optional. On LiDAR models it enables: room-side real-world occlusion and the
   "clear area" placement check. Everything else works without it.
 - Camera permission. Sound respects the silent switch.
