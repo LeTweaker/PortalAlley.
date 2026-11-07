@@ -1,7 +1,7 @@
 # Validation record
 
-Nothing below is a claim about the iPhone app running. **The Swift/Metal code has not been
-compiled** (the authoring environment was Linux without Xcode), and no device test was performed.
+Nothing below is a claim about the iPhone app running on a device. The code now **compiles in CI**
+(see below); no device test has been performed yet.
 
 ## Done here (actually performed)
 
@@ -34,7 +34,7 @@ reflections, and the cropped arch sign.
 **What the preview cannot show:** RealityKit's tone mapping and transparency blending, the
 ARKit environment lighting on the frame, real camera exposure/noise, tracking, performance.
 
-## Done by CI (on every push; results not yet seen)
+## Done by CI (on every push)
 
 1. `swift test --package-path PortalCore` (8 suites: geometry/transforms incl. mirroring and
    parallax direction, placement rules, tracking policy, boundary policy, state machine,
@@ -47,3 +47,17 @@ ARKit environment lighting on the frame, real camera exposure/noise, tracking, p
 
 See [PHONE_CHECKLIST.md](PHONE_CHECKLIST.md). Please paste the developer panel's "Copy report +
 soak log" text back to me after the 10-minute run.
+
+### First CI results (GitHub Actions run 42414096084, 2026-11-07, macos-15 runner)
+
+- `swift test`: **40 tests, 0 failures.**
+- `xcodebuild` Release, `generic/platform=iOS`, unsigned: **BUILD SUCCEEDED**. The bundle contains
+  `default.metallib` with all 14 surface shaders (alleyLit, alleyGround, alleyDecal, alleyEmissive,
+  alleyWindow, alleySky, alleyRain, alleySteam, portalEdge, portalVeil, portalSeam, contactShadow,
+  floorSpill, previewGhost) and `Portal/manifest.json`. The app is 14 MB and `PortalAlley-unsigned.ipa` is 12 MB.
+- Fixes needed to get there:
+  1. `OpacityComponent` is iOS 18+: guarded with `#available`. On iOS 17 the doorway shows and hides without the fade.
+  2. `PortalLook` needed a public initializer.
+  3. One test expectation was wrong at the ±π boundary of `wrapAngle`.
+  4. The workflow now fails the job when tests fail. Previously `| tee` masked the exit code.
+- Remaining warning: an unused `withUnsafeBytes` result in `MeshPack.swift`. It is harmless.
