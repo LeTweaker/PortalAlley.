@@ -9,6 +9,15 @@ public struct PortalLook: Equatable, Sendable {
     public var apertureOpen: Float     // 0 = leaves closed (room visible), 1 = fully open
     public var veil: Float             // haze in the opened aperture (0 = clear)
 
+    public init(frameOpacity: Float, edgeIntensity: Float, edgeSweep: Float, seamIntensity: Float, apertureOpen: Float, veil: Float) {
+        self.frameOpacity = frameOpacity
+        self.edgeIntensity = edgeIntensity
+        self.edgeSweep = edgeSweep
+        self.seamIntensity = seamIntensity
+        self.apertureOpen = apertureOpen
+        self.veil = veil
+    }
+
     public static let closed = PortalLook(frameOpacity: 1, edgeIntensity: 0.35, edgeSweep: 0, seamIntensity: 0, apertureOpen: 0, veil: 0)
     public static let open = PortalLook(frameOpacity: 1, edgeIntensity: 1, edgeSweep: 0, seamIntensity: 0, apertureOpen: 1, veil: 0)
 }
