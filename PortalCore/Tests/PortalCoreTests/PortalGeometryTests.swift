@@ -87,7 +87,10 @@ final class PortalGeometryTests: XCTestCase {
         for _ in 0..<60 { a = PortalMath.approach(a, 1, rate: 5, dt: 1.0 / 60) }
         for _ in 0..<120 { b = PortalMath.approach(b, 1, rate: 5, dt: 1.0 / 120) }
         XCTAssertEqual(a, b, accuracy: 1e-3)
-        XCTAssertEqual(PortalMath.wrapAngle(3 * .pi), .pi, accuracy: 1e-4)
+        // wrapAngle maps into [-pi, pi); 3*pi lands on the boundary (-pi == +pi as a direction)
+        XCTAssertEqual(abs(PortalMath.wrapAngle(3 * .pi)), .pi, accuracy: 1e-4)
+        XCTAssertEqual(PortalMath.wrapAngle(2 * .pi + 0.5), 0.5, accuracy: 1e-4)
+        XCTAssertEqual(PortalMath.wrapAngle(-2 * .pi - 0.5), -0.5, accuracy: 1e-4)
     }
 
     func testDefaultDimensionsConsistent() {
