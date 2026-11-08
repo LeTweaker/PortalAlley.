@@ -1099,6 +1099,14 @@
     1024,
     1024
    ]
+  },
+  "capture_woolwich_albedo": {
+   "file": "textures/capture_woolwich_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
   }
  },
  "materials": {
@@ -2560,6 +2568,63 @@
    ],
    "blend": "transparent",
    "cull": "none"
+  },
+  "capture_woolwich": {
+   "shader": "captureUnlit",
+   "textures": {
+    "baseColor": "capture_woolwich_albedo",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    1.0,
+    1.0,
+    0.0,
+    1.0
+   ],
+   "cull": "none"
+  },
+  "capture_woolwich_sky": {
+   "shader": "captureSky",
+   "textures": {
+    "baseColor": "white",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.56,
+    0.62,
+    0.7
+   ],
+   "params": [
+    0.78,
+    0.79,
+    0.81,
+    1.0
+   ]
+  },
+  "capture_woolwich_rain": {
+   "shader": "captureRain",
+   "textures": {
+    "baseColor": "rain",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.86,
+    0.88,
+    0.92
+   ],
+   "params": [
+    5.0,
+    0.0,
+    0.34,
+    1.0
+   ],
+   "blend": "transparent",
+   "cull": "none"
   }
  },
  "meshes": {
@@ -2580,6 +2645,20 @@
    "vertices": 292260,
    "triangles": 379209,
    "bytes": 16205718
+  },
+  "capture_woolwich": {
+   "file": "meshes/capture_woolwich.pmsh",
+   "vertices": 629457,
+   "triangles": 706266,
+   "bytes": 28617122,
+   "lazy": true
+  },
+  "capture_woolwich_low": {
+   "file": "meshes/capture_woolwich_low.pmsh",
+   "vertices": 230649,
+   "triangles": 268437,
+   "bytes": 10601318,
+   "lazy": true
   }
  },
  "lights": [
@@ -2847,5 +2926,71 @@
   "hum_loop.wav": 12.0,
   "portal_open.wav": 2.2,
   "portal_close.wav": 0.9
- }
+ },
+ "destinations": {
+  "illustrated": {
+   "kind": "illustrated",
+   "title": "Illustrated alley (v1.3)",
+   "mesh": "alley",
+   "floorAperture": [
+    0.1,
+    7.0,
+    -8.0
+   ],
+   "ceilingAperture": [
+    0.1,
+    2.5,
+    -5.2
+   ]
+  },
+  "woolwich": {
+   "kind": "capture",
+   "title": "Woolwich Alley",
+   "mesh": "capture_woolwich",
+   "meshLow": "capture_woolwich_low",
+   "floorAperture": [
+    0.0,
+    4.5,
+    -8.0
+   ],
+   "ceilingAperture": [
+    0.0,
+    2.4,
+    -6.0
+   ],
+   "credit": "\u201cWoolwich Alley\u201d by artfletch, CC BY 4.0 (https://sketchfab.com/3d-models/woolwich-alley-f95ea3f1c306450ea3996bb492f01394)",
+   "licence": "CC BY 4.0",
+   "source": "https://sketchfab.com/3d-models/woolwich-alley-f95ea3f1c306450ea3996bb492f01394",
+   "location": "Alley between Woolwich High Street and Mortgramit Square, Woolwich, London, UK",
+   "stats": {
+    "trianglesHigh": 703375,
+    "trianglesLow": 265546,
+    "verticesHigh": 627375,
+    "verticesLow": 228567,
+    "floorY": 1.049,
+    "extentMin": [
+     -7.04,
+     -0.14,
+     -27.35
+    ],
+    "extentMax": [
+     5.04,
+     12.07,
+     -0.13
+    ]
+   }
+  },
+  "tokyo_heavy_rain": {
+   "kind": "video",
+   "title": "Heavy rain in early spring in Tokyo",
+   "file": "video/tokyo_heavy_rain.mp4",
+   "screenDepth": 2.5,
+   "aspect": 1.7778,
+   "credit": "\u201cHeavy rain in early spring in Tokyo\u201d by Fumikas Sagisavas, CC BY 4.0 (Wikimedia Commons)",
+   "licence": "CC BY 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Heavy_rain_in_early_spring_in_Tokyo.webm",
+   "location": "Tokyo, Japan"
+  }
+ },
+ "defaultDestination": "woolwich"
 }

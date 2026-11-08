@@ -410,3 +410,139 @@ public enum PoseSmoothing {
         return m
     }
 }
+
+// MARK: - Destinations (v1.4)
+
+/// What is behind the portal.
+public enum DestinationKind: String, Codable, CaseIterable, Sendable {
+    /// Authored, illustrated alley (v1.0-1.3), kept as a fallback.
+    case illustrated
+    /// Genuinely captured photogrammetry scene: true 3D, responds to movement.
+    case capture
+    /// Genuine flat footage on a screen behind the opening (Cinematic Mode).
+    case video
+}
+
+/// Per-destination placement data for floor / ceiling portals: where in the
+/// destination (its own metres, +y up, alley toward -z) the opening appears.
+public struct DestinationScene: Equatable, Sendable {
+    public var id: String
+    public var kind: DestinationKind
+    public var floorAperture: SIMD3<Float>
+    public var ceilingAperture: SIMD3<Float>
+
+    public init(id: String, kind: DestinationKind, floorAperture: SIMD3<Float>, ceilingAperture: SIMD3<Float>) {
+        self.id = id
+        self.kind = kind
+        self.floorAperture = floorAperture
+        self.ceilingAperture = ceilingAperture
+    }
+
+    public static let illustrated = DestinationScene(id: "illustrated", kind: .illustrated,
+                                                     floorAperture: SIMD3(0.1, 7.0, -8.0), ceilingAperture: SIMD3(0.1, 2.5, -5.2))
+
+    /// Which surfaces this destination can be shown on.  Flat footage only
+    /// makes sense in a wall-like window (a floor or ceiling hole would demand
+    /// views the footage never contained).
+    public func supports(_ mode: DestinationMode) -> Bool {
+        kind != .video || mode == .wall
+    }
+
+    public func aperture(_ mode: DestinationMode) -> SIMD3<Float> {
+        switch mode {
+        case .wall: return mode.aperture
+        case .floor: return floorAperture
+        case .ceiling: return ceilingAperture
+        }
+    }
+}
+
+extension DestinationMode {
+    /// worldRoot transform for a given destination (alley space -> rig space).
+    public func worldTransform(dims: PortalDimensions = PortalDimensions(), scene: DestinationScene) -> simd_float4x4 {
+        guard self != .wall else { return matrix_identity_float4x4 }
+        let r = rotation
+        let centre = SIMD3<Float>(0, (dims.openY0 + dims.openY1) / 2, dims.occluderZ)
+        let t = centre - r * scene.aperture(self)
+        return simd_float4x4(columns: (SIMD4(r.columns.0, 0), SIMD4(r.columns.1, 0), SIMD4(r.columns.2, 0), SIMD4(t, 1)))
+    }
+
+    public func clipCode(scene: DestinationScene) -> Float {
+        switch self {
+        case .wall: return 0
+        case .floor: return scene.aperture(self).y / 20
+        case .ceiling: return 0.5 + scene.aperture(self).y / 20
+        }
+    }
+}
+
+// MARK: - Cinematic Mode screen
+
+/// Flat footage is shown on a screen at a fixed depth behind the opening:
+/// exactly the perspective of a picture standing in the alley.  The screen is
+/// sized so that, from every viewpoint in the supported viewing zone, the
+/// opening shows only footage; outside the zone a dark matte surround shows
+/// instead of the room.  Nothing pretends the footage is 3D.
+public struct CinematicScreen: Equatable, Sendable {
+    /// Screen centre and size in portal space (the plane z = centre.z).
+    public var centre: SIMD3<Float>
+    public var width: Float
+    public var height: Float
+
+    /// Viewing zone the screen must cover: at least `minDistance` in front of
+    /// the opening and within `maxAngleDegrees` of its axis, at heights `heights`.
+    public struct Zone: Equatable, Sendable {
+        public var minDistance: Float = 1.2
+        public var maxDistance: Float = 4.0
+        public var maxAngleDegrees: Float = 35
+        public var heights: ClosedRange<Float> = 0.9...2.0
+        public init() {}
+    }
+
+    /// Smallest screen at `depth` (metres behind the opening) of aspect
+    /// `aspect` (width / height) that covers the opening from every zone viewpoint.
+    public static func fit(depth: Float, aspect: Float, zone: Zone = Zone(), dims: PortalDimensions = PortalDimensions()) -> CinematicScreen {
+        let zPlane = dims.occluderZ - depth
+        var lo = SIMD2<Float>(repeating: .greatestFiniteMagnitude), hi = -lo
+        let a = zone.maxAngleDegrees * .pi / 180
+        let corners: [SIMD3<Float>] = [SIMD3(-dims.openHalfWidth, dims.openY0, dims.occluderZ), SIMD3(dims.openHalfWidth, dims.openY0, dims.occluderZ),
+                                       SIMD3(-dims.openHalfWidth, dims.openY1, dims.occluderZ), SIMD3(dims.openHalfWidth, dims.openY1, dims.occluderZ)]
+        for d in [zone.minDistance, zone.maxDistance] {
+            for ang in [-a, 0, a] {
+                for h in [zone.heights.lowerBound, zone.heights.upperBound] {
+                    let v = SIMD3<Float>(sin(ang) * d, h, cos(ang) * d)
+                    for c in corners {
+                        let k = (zPlane - v.z) / (c.z - v.z)
+                        let p = v + (c - v) * k
+                        lo = simd_min(lo, SIMD2(p.x, p.y)); hi = simd_max(hi, SIMD2(p.x, p.y))
+                    }
+                }
+            }
+        }
+        var w = hi.x - lo.x, h = hi.y - lo.y
+        if w / h < aspect { w = h * aspect } else { h = w / aspect }
+        let c = SIMD3<Float>((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, zPlane)
+        return CinematicScreen(centre: c, width: w, height: h)
+    }
+
+    /// Whether the opening, seen from `camera` (portal space), shows only the screen.
+    public func covers(from camera: SIMD3<Float>, dims: PortalDimensions = PortalDimensions()) -> Bool {
+        guard camera.z > dims.occluderZ + 0.01 else { return false }
+        for x in [-dims.openHalfWidth, dims.openHalfWidth] {
+            for y in [dims.openY0, dims.openY1] {
+                let c = SIMD3<Float>(x, y, dims.occluderZ)
+                let k = (centre.z - camera.z) / (c.z - camera.z)
+                let p = camera + (c - camera) * k
+                if abs(p.x - centre.x) > width / 2 + 1e-4 || abs(p.y - centre.y) > height / 2 + 1e-4 { return false }
+            }
+        }
+        return true
+    }
+
+    /// Fraction of the footage width visible through the opening from `camera`
+    /// (how much it is magnified; 1 = the whole frame).
+    public func visibleFraction(from camera: SIMD3<Float>, dims: PortalDimensions = PortalDimensions()) -> Float {
+        let k = (centre.z - camera.z) / (dims.occluderZ - camera.z)
+        return min(1, 2 * dims.openHalfWidth * k / width)
+    }
+}

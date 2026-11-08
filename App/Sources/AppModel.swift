@@ -2,6 +2,13 @@ import Foundation
 import PortalCore
 import SwiftUI
 
+/// Spatial: captured 3D scene.  Cinematic: genuine flat footage.
+enum ViewingMode: String, CaseIterable, Identifiable {
+    case spatial, cinematic
+    var id: String { rawValue }
+    var label: String { self == .spatial ? "Spatial 3D" : "Cinematic" }
+}
+
 /// UI state.  The AR controller writes it; SwiftUI reads it.
 @MainActor
 final class AppModel: ObservableObject {
@@ -35,6 +42,15 @@ final class AppModel: ObservableObject {
     @Published var portalScaleText = "100%"
     @Published var floorWarning = false
     @Published var classicBoundary = false
+
+    // v1.4: destinations
+    @Published var viewingMode: ViewingMode = .spatial
+    @Published var cinematicAvailable = false
+    @Published var destinationTitle = ""
+    @Published var destinationCredit = ""
+    @Published var destinationKind = ""
+    @Published var illustratedFallback = false
+    @Published var rainOverlay = true
 
     func showConfirmation(_ text: String) {
         confirmation = text
@@ -74,6 +90,9 @@ final class AppModel: ObservableObject {
     func resizePortal(grow: Bool) { controller?.resizePortal(grow: grow) }
     func rotatePortal(clockwise: Bool) { controller?.rotatePortal(clockwise: clockwise) }
     func setClassicBoundary(_ on: Bool) { controller?.setClassicBoundary(on) }
+    func setViewingMode(_ v: ViewingMode) { controller?.setViewingMode(v) }
+    func setIllustratedFallback(_ on: Bool) { controller?.setIllustratedFallback(on) }
+    func setRainOverlay(_ on: Bool) { controller?.setRainOverlay(on) }
     func setEasyMode(_ on: Bool) { controller?.setEasyMode(on) }
     func confirm() { controller?.confirm() }
     func back() { controller?.back() }

@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import PortalCore
 import RealityKit
@@ -81,8 +82,6 @@ final class PortalRig {
         try buildFrame()
         try buildTrim()
         try buildInterior()
-        try buildWorld()
-        try buildModeExtras()
         try buildInsideEnvironment()
         setStyle(.subtle)
     }
@@ -158,8 +157,69 @@ final class PortalRig {
         interiorRoot.addChild(seam)
     }
 
-    private func buildWorld() throws {
-        let alley = assets.parts("alley")
+    // MARK: destinations (v1.4)
+    //
+    // Each destination lives in its own container under worldRoot, built on
+    // demand from lazily loaded assets; only the active one is kept, so the
+    // illustrated alley, a capture and the footage never occupy memory together.
+
+    private(set) var destinationId = ""
+    private(set) var scene = DestinationScene.illustrated
+    private var container: Entity?
+    private var videoPlayer: AVQueuePlayer?
+    private var videoLooper: AVPlayerLooper?
+    private(set) var cinematicScreen: CinematicScreen?
+    private var captureSky: Entity?
+    private var captureSkyFull: Entity?
+    private var videoMuted = false
+
+    /// Builds (if needed) and activates a destination.  Returns load seconds.
+    @discardableResult
+    func activate(_ id: String, tier: QualityTier, force: Bool = false) async throws -> Double {
+        guard let info = assets.manifest.destinations?[id] else { throw AssetError.missingMaterial(id) }
+        if id == destinationId, container != nil, !force { return 0 }
+        let t0 = CFAbsoluteTimeGetCurrent()
+        let previous = (destinationId, container)
+        let c = Entity()
+        c.name = "Destination.\(id)"
+        resetDestinationRefs()
+        assets.purgeCaches()
+        var tris = 0
+        switch info.kind {
+        case .illustrated:
+            try await assets.loadMesh(info.mesh ?? "alley")
+            tris = try buildIllustrated(into: c, mesh: info.mesh ?? "alley")
+        case .capture:
+            let mesh = (tier == .low ? info.meshLow : nil) ?? info.mesh ?? ""
+            try await assets.loadMesh(mesh)
+            tris = try buildCapture(into: c, mesh: mesh)
+            assets.unloadMesh(mesh)              // entities keep their own copies
+        case .video:
+            try buildVideo(into: c, info: info)
+        }
+        // swap: release the previous destination
+        if let old = previous.1 { old.removeFromParent() }
+        if let oldInfo = assets.manifest.destinations?[previous.0], oldInfo.kind == .illustrated { assets.unloadMesh(oldInfo.mesh ?? "alley") }
+        worldRoot.addChild(c)
+        container = c
+        destinationId = id
+        scene = info.scene(id: id)
+        destinationTriangles = tris
+        applyTier(tier)
+        setMode(scene.supports(mode) ? mode : .wall)
+        return CFAbsoluteTimeGetCurrent() - t0
+    }
+
+    private(set) var destinationTriangles = 0
+
+    private func resetDestinationRefs() {
+        rainLayers = [:]; steam = nil; backCap = nil; fullSky = nil
+        captureSky = nil; captureSkyFull = nil; cinematicScreen = nil
+        videoPlayer?.pause(); videoLooper = nil; videoPlayer = nil
+    }
+
+    private func buildIllustrated(into c: Entity, mesh: String) throws -> Int {
+        let alley = assets.parts(mesh)
         // Opaque geometry: one entity per chunk (near / mid / far / distant / sky)
         // for frustum culling.  Transparent layers: one entity each, so the
         // renderer can sort them and the quality tier can drop some.
@@ -167,23 +227,88 @@ final class PortalRig {
         let byChunk = Dictionary(grouping: alley.filter { !transparent.contains($0.material) }, by: \.chunk)
         for (chunk, parts) in byChunk.sorted(by: { $0.key < $1.key }) {
             let e = try assets.modelEntity(parts, name: "alley.\(chunk)")
-            worldRoot.addChild(e)
+            c.addChild(e)
             // closes the alley's open end; only seen from floor/ceiling portals
             if chunk == "backcap" { backCap = e; e.isEnabled = false }
         }
         for p in alley where transparent.contains(p.material) {
             let e = try assets.modelEntity([p], name: "alley.\(p.material)")
-            worldRoot.addChild(e)
+            c.addChild(e)
             if p.material.hasPrefix("rain_") { rainLayers[p.material] = e }
             if p.material == "steam" { steam = e }
         }
-        triangleCount += alley.reduce(0) { $0 + $1.triangleCount }
+        // floor / ceiling portals look in every direction: a closed sky sphere
+        var sky = try assets.uniqueMaterial("sky")
+        if var custom = sky as? CustomMaterial { custom.faceCulling = .front; sky = custom }
+        let dome = ModelEntity(mesh: .generateSphere(radius: 110), materials: [sky])
+        dome.name = "FullSky"
+        if !(sky is CustomMaterial) { dome.scale.x = -1 }       // unlit fallback: invert winding instead
+        dome.isEnabled = false
+        c.addChild(dome)
+        fullSky = dome
+        return alley.reduce(0) { $0 + $1.triangleCount }
     }
+
+    /// Photogrammetry capture: unlit photographic texture, sky closure, rain.
+    private func buildCapture(into c: Entity, mesh: String) throws -> Int {
+        let parts = assets.parts(mesh)
+        for (chunk, ps) in Dictionary(grouping: parts, by: \.chunk).sorted(by: { $0.key < $1.key }) {
+            let e = try assets.modelEntity(ps, name: "capture.\(chunk)")
+            c.addChild(e)
+            switch chunk {
+            case "sky": captureSky = e
+            case "skyfull": captureSkyFull = e; e.isEnabled = false
+            case "rain": rainLayers["capture_rain"] = e
+            default: break
+            }
+        }
+        return parts.filter { $0.chunk == "capture" }.reduce(0) { $0 + $1.triangleCount }
+    }
+
+    /// Cinematic Mode: genuine flat footage on a screen at a fixed depth
+    /// behind the opening, with a dark matte so oblique views show an edge,
+    /// never the room.  VideoMaterial is unlit; the clip loops.
+    private func buildVideo(into c: Entity, info: AssetManifest.Destination) throws {
+        guard let file = info.file else { throw AssetError.missingTexture("video") }
+        let url = assets.baseURL.appendingPathComponent(file)
+        let item = AVPlayerItem(url: url)
+        let player = AVQueuePlayer()
+        player.isMuted = videoMuted
+        videoLooper = AVPlayerLooper(player: player, templateItem: item)
+        videoPlayer = player
+        let screen = CinematicScreen.fit(depth: info.screenDepth ?? 2.5, aspect: info.aspect ?? 16.0 / 9.0, dims: dims)
+        cinematicScreen = screen
+        let plane = ModelEntity(mesh: .generatePlane(width: screen.width, height: screen.height), materials: [VideoMaterial(avPlayer: player)])
+        plane.position = screen.centre
+        plane.name = "cinematic.screen"
+        c.addChild(plane)
+        let matte = ModelEntity(mesh: .generatePlane(width: screen.width * 6, height: screen.height * 6),
+                                materials: [UnlitMaterial(color: UIColor(white: 0.015, alpha: 1))])
+        matte.position = screen.centre + SIMD3(0, 0, -0.05)
+        matte.name = "cinematic.matte"
+        c.addChild(matte)
+    }
+
+    func setVideoPlaying(_ on: Bool) {
+        guard let p = videoPlayer else { return }
+        if on { if p.rate == 0 { p.play() } } else { p.pause() }
+    }
+
+    func setVideoMuted(_ m: Bool) {
+        videoMuted = m
+        videoPlayer?.isMuted = m
+    }
+
+    var isCinematic: Bool { cinematicScreen != nil }
 
     // MARK: runtime
 
+    var rainEnabled = true {
+        didSet { if let r = rainLayers["capture_rain"] { r.isEnabled = rainEnabled } }
+    }
+
     func applyTier(_ tier: QualityTier) {
-        for (name, e) in rainLayers { e.isEnabled = tier.keptRainLayers.contains(name) }
+        for (name, e) in rainLayers { e.isEnabled = name == "capture_rain" ? rainEnabled : tier.keptRainLayers.contains(name) }
         steam?.isEnabled = tier.steam
         assets.applyLightBudget(tier, under: root)
     }
@@ -195,24 +320,13 @@ final class PortalRig {
 
     /// Floor / ceiling portals look in every direction: a closed sky sphere
     /// replaces the doorway-facing dome (disabled for wall portals).
-    private func buildModeExtras() throws {
-        var sky = try assets.uniqueMaterial("sky")
-        if var custom = sky as? CustomMaterial { custom.faceCulling = .front; sky = custom }
-        let dome = ModelEntity(mesh: .generateSphere(radius: 110), materials: [sky])
-        dome.name = "FullSky"
-        if !(sky is CustomMaterial) { dome.scale.x = -1 }       // unlit fallback: invert winding instead
-        dome.isEnabled = false
-        worldRoot.addChild(dome)
-        fullSky = dome
-    }
-
     func setDestinationOffset(_ offset: SIMD3<Float>) {
         destinationOffset = offset
         applyWorldTransform()
     }
 
     private func applyWorldTransform() {
-        var t = Transform(matrix: mode.worldTransform(dims: dims))
+        var t = Transform(matrix: mode.worldTransform(dims: dims, scene: scene))
         t.translation += destinationOffset
         worldRoot.transform = t
     }
@@ -223,9 +337,11 @@ final class PortalRig {
         mode = m
         destinationOffset = .zero
         applyWorldTransform()
-        assets.applyDestinationClip(m.clipCode, under: worldRoot)
+        assets.applyDestinationClip(m.clipCode(scene: scene), under: worldRoot)
         backCap?.isEnabled = m != .wall
         fullSky?.isEnabled = m != .wall
+        captureSky?.isEnabled = m == .wall
+        captureSkyFull?.isEnabled = m != .wall
         // the doorway-facing dome and the inside-view closure belong to walls
         worldRoot.findEntity(named: "alley.sky")?.isEnabled = m == .wall
     }

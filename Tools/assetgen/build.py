@@ -28,6 +28,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 import alley  # noqa: E402
 import audio  # noqa: E402
 import bake  # noqa: E402
+import capture  # noqa: E402
 import frame  # noqa: E402
 import interiors  # noqa: E402
 import photo  # noqa: E402
@@ -264,6 +265,33 @@ def emit_light_headers(rows):
         fh.write("\n".join(glsl))
 
 
+CAPTURE_TEX = {}
+
+
+def video_destinations():
+    """Cinematic Mode: genuine, openly licensed footage (Vendor/footage),
+    copied into the bundle unaltered (H.264 transcode made by the fetcher)."""
+    import shutil
+    out = {}
+    vdir = os.path.join(RES, "video")
+    os.makedirs(vdir, exist_ok=True)
+    for name in ("tokyo_heavy_rain",):
+        src = os.path.join(ROOT, "Vendor", "footage", name)
+        prov = json.load(open(os.path.join(src, "provenance.json")))
+        shutil.copyfile(os.path.join(src, f"{name}.mp4"), os.path.join(vdir, f"{name}.mp4"))
+        out[name] = dict(kind="video", title=prov["title"], file=f"video/{name}.mp4", screenDepth=2.5,
+                         aspect=round(prov["width"] / prov["height"], 4),
+                         credit=f"\u201c{prov['title']}\u201d by {prov['author']}, {prov['licence']} (Wikimedia Commons)",
+                         licence=prov["licence"], source=prov["source"], location="Tokyo, Japan")
+    return out
+
+
+def save_cap_jpg(name, img, semantic):
+    path = os.path.join(TEX, f"{name}.jpg")
+    img.convert("RGB").save(path, quality=92, optimize=True)
+    CAPTURE_TEX[name] = dict(file=f"textures/{name}.jpg", semantic=semantic, size=list(img.size))
+
+
 def main():
     t0 = time.time()
     tex, A, I = build_textures()
@@ -286,7 +314,7 @@ def main():
         assert not bad, f"winding/normal mismatch in {name}: {bad}"
         size = mb.write(os.path.join(MESH, f"{name}.pmsh"))
         v, t = mb.stats()
-        meshes[name] = dict(file=f"meshes/{name}.pmsh", vertices=v, triangles=t, bytes=size)
+        meshes[name] = dict(file=f"meshes/{name}.pmsh", vertices=v, triangles=t, bytes=size, lazy=name == "alley")
         print(f"mesh {name}: {v} verts, {t} tris, {size / 1024:.0f} KiB")
 
     # Portal invariants: the doorway is entirely on the room side of the
@@ -298,10 +326,30 @@ def main():
     assert wz < zocc - 0.004, f"destination geometry in front of the occluder plane: {wz}"
     print(f"invariants ok: frame min z {fz:.4f} > occluder {zocc} > alley max z {wz:.4f}")
 
+    # ---- Spatial Mode: genuinely captured destinations (photogrammetry)
+    destinations = dict(illustrated=dict(kind="illustrated", title="Illustrated alley (v1.3)", mesh="alley",
+                                         floorAperture=[0.1, 7.0, -8.0], ceilingAperture=[0.1, 2.5, -5.2]))
+    capture_mats = {}
+    for cname in capture.CAPTURES:
+        packs, dest, cmats = capture.build(cname, save_cap_jpg, MESH)
+        for key, mb in packs.items():
+            solid = [p.arrays()[0] for (ch, m), p in mb.parts.items() if ch not in ("skyfull",)]
+            zmax = max(a[:, 2].max() for a in solid)
+            assert zmax < frame.OCCLUDER_Z - 0.0035, f"{key}: capture geometry in front of the occluder plane ({zmax})"
+            size = mb.write(os.path.join(MESH, f"{key}.pmsh"))
+            v, t = mb.stats()
+            meshes[key] = dict(file=f"meshes/{key}.pmsh", vertices=v, triangles=t, bytes=size, lazy=True)
+            print(f"mesh {key}: {v} verts, {t} tris, {size / 1024:.0f} KiB")
+        destinations[cname] = dest
+        capture_mats.update(cmats)
+    destinations.update(video_destinations())
+
     rows = light_table()
     emit_light_headers(rows)
 
     mats = materials()
+    mats.update(capture_mats)
+    tex.update(CAPTURE_TEX)
     used = {m for (_, m) in list(fr.parts) + list(aux.parts) + list(world.parts)}
     missing = used - set(mats)
     assert not missing, f"materials missing definitions: {missing}"
@@ -326,6 +374,8 @@ def main():
         lights=[dict(name=r[0], position=list(r[1]), color=list(r[2]), intensity=r[3], radius=r[4], flicker=r[5]) for r in rows],
         lowTierLightCount=LOW_TIER_LIGHTS,
         audio=aud,
+        destinations=destinations,
+        defaultDestination="woolwich",
     )
     with open(os.path.join(RES, "manifest.json"), "w") as fh:
         json.dump(manifest, fh, indent=1)

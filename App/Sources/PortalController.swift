@@ -66,6 +66,12 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     private var placedStandsOnFloor = true
     private var adjustment = ApertureAdjustment()
     private var classicBoundary = false
+
+    // v1.4: what is behind the portal
+    private var spatialDestination = "illustrated"     // set from the manifest (capture by default)
+    private var cinematicDestination: String?
+    private var viewing: ViewingMode = .spatial
+    private var switchingDestination = false
     private var findGuideUntil: TimeInterval = 0
     private var lastFindCheck: TimeInterval = 0
 
@@ -131,6 +137,13 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             try await a.loadMeshes()
             try await a.preloadTextures()
             let r = try PortalRig(assets: a)
+            let dests = a.manifest.destinations ?? [:]
+            spatialDestination = a.manifest.defaultDestination.flatMap { dests[$0] != nil ? $0 : nil } ?? "illustrated"
+            cinematicDestination = dests.filter { $0.value.kind == .video }.keys.sorted().first
+            model?.cinematicAvailable = cinematicDestination != nil
+            let secs = try await r.activate(spatialDestination, tier: tier)
+            model?.note(String(format: "Destination %@ ready in %.2f s", spatialDestination, secs))
+            publishDestination(r)
             r.applyTier(tier)
             r.root.addChild(occlusion.root)
             rig = r
@@ -451,6 +464,12 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     /// ARAnchor for the doorway is created; its transform is never written again.
     private func anchorDoorway(_ m: simd_float4x4, rig: PortalRig, mode: DestinationMode, style: PortalStyle, standingOnFloor: Bool) {
         preview?.hide()
+        if !rig.scene.supports(mode) {
+            // footage only fills wall-like windows: show the 3D capture instead
+            model?.showConfirmation("Footage works in wall portals - showing Spatial")
+            placedMode = mode
+            setViewingMode(.spatial)
+        }
         rig.setMode(mode)
         rig.setStyle(style)
         placedMode = mode
@@ -540,13 +559,70 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     func keepWaiting() { model?.showReplaceOffer = false }
 
-    func setMuted(_ m: Bool) { muted = m }
+    func setMuted(_ m: Bool) {
+        muted = m
+        rig?.setVideoMuted(m)
+    }
+
+    // MARK: Spatial / Cinematic (v1.4)
+
+    /// Spatial: the captured 3D scene.  Cinematic: genuine flat footage on a
+    /// screen behind the opening (wall-like openings only).
+    func setViewingMode(_ v: ViewingMode) {
+        guard let rig, !switchingDestination else { return }
+        if v == .cinematic {
+            guard cinematicDestination != nil else { return }
+            if machine.doorwayAnchored && placedMode != .wall {
+                model?.showConfirmation("Footage works in wall portals - this one stays Spatial")
+                model?.viewingMode = .spatial
+                return
+            }
+        }
+        viewing = v
+        model?.viewingMode = v
+        let id = v == .cinematic ? (cinematicDestination ?? spatialDestination) : spatialDestination
+        switchingDestination = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.switchingDestination = false }
+            do {
+                let secs = try await rig.activate(id, tier: self.tier)
+                if secs > 0 { self.model?.note(String(format: "Destination %@ ready in %.2f s", id, secs)) }
+                rig.setMode(self.machine.doorwayAnchored ? self.placedMode : .wall)
+                rig.setVideoMuted(self.muted)
+                self.publishDestination(rig)
+            } catch {
+                self.model?.note("Destination \(id) failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Developer option: show the v1.3 illustrated alley instead of the capture.
+    func setIllustratedFallback(_ on: Bool) {
+        let dests = assets?.manifest.destinations ?? [:]
+        let capture = assets?.manifest.defaultDestination.flatMap { dests[$0] != nil ? $0 : nil } ?? "illustrated"
+        spatialDestination = on ? "illustrated" : capture
+        model?.illustratedFallback = on
+        if viewing == .spatial { setViewingMode(.spatial) }
+    }
+
+    func setRainOverlay(_ on: Bool) {
+        rig?.rainEnabled = on
+        model?.rainOverlay = on
+    }
+
+    private func publishDestination(_ r: PortalRig) {
+        guard let info = assets?.manifest.destinations?[r.destinationId] else { return }
+        model?.destinationTitle = info.title
+        model?.destinationCredit = info.credit ?? ""
+        model?.destinationKind = info.kind.rawValue
+    }
 
     /// View the inside of a wall-mounted portal without physically crossing a
     /// solid wall. Translate only the destination to an equivalent camera view;
     /// the placed doorway's world anchor is never modified.
     func toggleInsideView() {
-        guard machine.phase == .open, let ae = anchorEntity, let rig, placedMode.allowsCrossing else { return }
+        guard machine.phase == .open, let ae = anchorEntity, let rig, placedMode.allowsCrossing, !rig.isCinematic else { return }
         if insideOffset != nil {
             insideOffset = nil
             rig.setDestinationOffset(.zero)
@@ -568,6 +644,16 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     func setTier(_ t: QualityTier) {
         tier = t
         rig?.applyTier(t)
+        // captures ship two levels of detail: rebuild with the tier's mesh
+        if let rig, assets?.manifest.destinations?[rig.destinationId]?.kind == .capture, !switchingDestination {
+            switchingDestination = true
+            Task { @MainActor [weak self] in
+                defer { self?.switchingDestination = false }
+                guard let self else { return }
+                _ = try? await rig.activate(rig.destinationId, tier: t, force: true)
+                rig.setMode(self.machine.doorwayAnchored ? self.placedMode : .wall)
+            }
+        }
         applyContentScale()
         if t == .low && lidarOcclusion { setLidarOcclusion(false) }
     }
@@ -604,6 +690,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     private func removeDoorway() {
         audio?.stop()
+        rig?.setVideoPlaying(false)
         insideOffset = nil
         model?.insideView = false
         rig?.setDestinationOffset(.zero)
@@ -904,7 +991,9 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         // Room-side LiDAR geometry must not cut holes in the virtual alley
         // while the camera is inside. ARKit continues tracking the real room.
         occlusion.enabled = lidarSupported && lidarOcclusion && !b.insideWorld
-        audio?.update(aperture: b.worldVisible ? look.apertureOpen * b.clarity : 0, frame: look.frameOpacity, muted: muted)
+        // footage carries its own recorded sound: the synthetic bed steps aside
+        audio?.update(aperture: b.worldVisible && !rig.isCinematic ? look.apertureOpen * b.clarity : 0, frame: look.frameOpacity, muted: muted)
+        rig.setVideoPlaying(b.worldVisible && look.apertureOpen > 0.05)
 
         if lidarOcclusion && !b.insideWorld, let anchors = arView.session.currentFrame?.anchors.compactMap({ $0 as? ARMeshAnchor }) {
             occlusion.update(meshAnchors: anchors, portalWorld: portalWorld, now: now)
@@ -917,7 +1006,12 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             FloorPortalSafety.isOver(camera: camWorld, portal: portalWorld, adjustment: adjustment, dims: dims)
         let floorMessage = overFloorPortal ? "Watch your step - you're over the floor portal" : nil
         if model?.floorWarning != overFloorPortal { model?.floorWarning = overFloorPortal }
-        let msg = interrupted ? "Paused" : (decision.message ?? floorMessage ?? findMessage ?? viewMessage ?? b.message)
+        // Cinematic: flat footage covers the opening only from the supported zone
+        var flatMessage: String?
+        if let screen = rig.cinematicScreen, machine.phase == .open, !screen.covers(from: camLocal, dims: dims) {
+            flatMessage = "This is flat footage - step back to fill the window, or switch to Spatial to lean in"
+        }
+        let msg = interrupted ? "Paused" : (decision.message ?? floorMessage ?? flatMessage ?? findMessage ?? viewMessage ?? b.message)
         setInstruction(msg ?? "", warning: decision.message != nil || floorMessage != nil || (!b.insideWorld && b.message != nil))
         if machine.phase == .open {
             diagnostics.soakTick(tracking: qualityText, corrections: corrections, maxCorrectionCm: Double(maxCorrection * 100), tier: tier.rawValue)
@@ -1005,7 +1099,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         d.cameraLocal += boundary.insideWorld ? " (inside alley)" : " (room side)"
         d.tier = tier.rawValue
         if let a = assets { d.lights = tier.lightCount(a.manifest); d.shaderIssues = a.shaderFallbacks }
-        d.triangles = rig?.triangleCount ?? 0
+        d.triangles = (rig?.triangleCount ?? 0) + (rig?.destinationTriangles ?? 0)
         d.lidar = lidarSupported ? (lidarOcclusion ? "occlusion on" : "occlusion off") : "not available"
         d.occluderTriangles = occlusion.triangleCount
         let up = Int(diagnostics.uptime)

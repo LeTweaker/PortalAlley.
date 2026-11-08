@@ -1,0 +1,28 @@
+name: Discover photographic scene candidates
+# Review-only: finds genuinely captured, CC-licensed scenes (Sketchfab public
+# API + Objaverse mirror) and Commons footage, pushes them to an orphan review
+# branch. Nothing is purchased; no tokens are used.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v1.4.0-photoreal]
+    paths: [Tools/find_scene_candidates.py, .github/workflows/scene-candidates.yml]
+permissions:
+  contents: write
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Discover
+        run: python Tools/find_scene_candidates.py out/candidates
+      - name: Publish to assets/scene-candidates
+        run: |
+          cd out
+          git init -q -b assets/scene-candidates
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A && git commit -q -m "Scene and footage candidates for review"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" assets/scene-candidates

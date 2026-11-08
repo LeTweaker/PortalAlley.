@@ -307,5 +307,26 @@ INLINE float4 shade_steam(float3 p, float density, float4 prm, float t, int coun
     return float4(a_tonemap(a_fog(col, p, float3(0.0), fogRef), prm.w), a);
 }
 
+// ------------------------------------------------------------ captures (v1.4)
+// Photogrammetry textures already contain the light of the captured scene:
+// shown unlit.  prm.x exposure, prm.y saturation, prm.z rain-darkening.
+INLINE float3 shade_capture(float3 c, float4 prm) {
+    float l = dot(c, float3(0.2126, 0.7152, 0.0722));
+    float3 g = mix(float3(l), c, prm.y);
+    return max(g * mix(1.0, 0.8, clamp(prm.z, 0.0, 1.0)) * prm.x, float3(0.0));
+}
+
+// Overcast sky dome closing reconstruction holes. p: dome position (centred).
+INLINE float3 shade_capture_sky(float3 p, float3 zenith, float3 horizon) {
+    float3 d = normalize(p);
+    return mix(horizon, zenith, smoothstep(-0.05, 0.65, d.y));
+}
+
+// Daylight rain sheets: pale streaks, fading with height and distance.
+INLINE float4 shade_capture_rain(float3 p, float streak, float3 tint, float4 prm) {
+    float fade = smoothstep(0.0, 0.3, p.y) * (1.0 - smoothstep(4.5, 7.0, p.y)) * (1.0 - smoothstep(10.0, 22.0, -p.z));
+    return float4(tint, clamp(streak * prm.z * fade, 0.0, 1.0));
+}
+
 #endif
 

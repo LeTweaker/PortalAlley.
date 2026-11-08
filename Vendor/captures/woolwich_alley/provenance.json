@@ -1,0 +1,18 @@
+{
+ "title": "Woolwich Alley",
+ "author": "artfletch",
+ "authorUrl": "https://sketchfab.com/artfletch",
+ "source": "https://sketchfab.com/3d-models/woolwich-alley-f95ea3f1c306450ea3996bb492f01394",
+ "licence": "CC BY 4.0",
+ "licenceUrl": "http://creativecommons.org/licenses/by/4.0/",
+ "capture": "Photogrammetry: 626 photos taken in May 2022 with a Sony a7R III, processed in RealityCapture (author's description)",
+ "location": "Alley between Woolwich High Street and Mortgramit Square, Woolwich, London, UK",
+ "published": "2022-05-30T13:05:14.271018",
+ "faces": 949176,
+ "vertices": 476137,
+ "download": "Objaverse 1.0 mirror (allenai/objaverse on Hugging Face), https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-063/f95ea3f1c306450ea3996bb492f01394.glb",
+ "objaverseLicence": "by",
+ "sha256": "8fdb365561f743e16c537884ab9d32a1fd6dfafb674c9f97b7907ad5aa4aa7a8",
+ "bytes": 39551764,
+ "note": "The Objaverse copy carries one 1024x1024 texture (Sketchfab's original archive is higher resolution and needs a free Sketchfab account to download)."
+}

@@ -80,10 +80,10 @@ private struct StartCard: View {
             VStack(spacing: 10) {
                 Text("Portal")
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
-                Text("Version 1.3.0")
+                Text("Version 1.4.0")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.6))
-                Text("Open a window into a rainy Tokyo back alley - in a wall, the floor or the ceiling.")
+                Text("Open a window into a real, photographed alley in 3D - or onto genuine Tokyo rain footage.")
                     .font(.system(size: 16))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85))
@@ -102,9 +102,14 @@ private struct StartCard: View {
                 .tint(Color(red: 0.25, green: 0.78, blue: 0.9))
                 .disabled(!model.assetsReady)
                 .padding(.top, 8)
-                Link("Photographed surfaces & scanned props: Poly Haven · CC0", destination: URL(string: "https://polyhaven.com/license")!)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
+                VStack(spacing: 3) {
+                    Text("3D scene: \u{201C}Woolwich Alley\u{201D} by artfletch · CC BY 4.0")
+                    Text("Footage: \u{201C}Heavy rain in early spring in Tokyo\u{201D} by Fumikas Sagisavas · CC BY 4.0")
+                    Link("Illustrated alley textures & props: Poly Haven · CC0", destination: URL(string: "https://polyhaven.com/license")!)
+                }
+                .font(.system(size: 10))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.6))
             }
             .padding(22)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -156,6 +161,30 @@ private struct BottomControls: View {
     }
 }
 
+/// Spatial 3D (captured scene) or Cinematic (genuine flat footage), plus the
+/// credit the CC BY licences require for whatever is showing.
+private struct ViewingPicker: View {
+    @ObservedObject var model: AppModel
+    var body: some View {
+        VStack(spacing: 4) {
+            if model.cinematicAvailable {
+                Picker("View", selection: Binding(get: { model.viewingMode }, set: { model.setViewingMode($0) })) {
+                    ForEach(ViewingMode.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 280)
+            }
+            if !model.destinationCredit.isEmpty {
+                Text(model.destinationCredit)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+        }
+    }
+}
+
 /// After placement the UI stays small: Reposition / Adjust / Close Portal.
 /// Adjust reveals Resize (and Rotate for openings not standing on the floor).
 private struct PlacedControls: View {
@@ -171,10 +200,11 @@ private struct PlacedControls: View {
                 RoundButton(system: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
                             label: model.muted ? "Unmute" : "Mute", action: model.toggleMute)
             }
+            ViewingPicker(model: model)
             if adjusting && model.phase == .open {
                 AdjustRow(model: model).transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if model.portalKind == "wall" {
+            if model.portalKind == "wall" && model.destinationKind != "video" {
                 Button(action: model.toggleInsideView) {
                     Label(model.insideView ? "Back to room" : "Look inside",
                           systemImage: model.insideView ? "arrow.uturn.backward" : "viewfinder")
@@ -271,6 +301,7 @@ private struct CreatePanel: View {
                     Text(hint).font(.system(size: 12)).foregroundStyle(.white.opacity(0.8))
                 }
             }
+            ViewingPicker(model: model)
             Button(action: model.createPortal) {
                 HStack(spacing: 10) {
                     Image(systemName: "door.left.hand.open")

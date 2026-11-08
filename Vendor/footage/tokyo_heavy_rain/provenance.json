@@ -1,0 +1,18 @@
+{
+ "title": "Heavy rain in early spring in Tokyo",
+ "author": "Fumikas Sagisavas",
+ "authorUrl": "https://commons.wikimedia.org/wiki/User:Fumikas_Sagisavas",
+ "source": "https://commons.wikimedia.org/wiki/File:Heavy_rain_in_early_spring_in_Tokyo.webm",
+ "original": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Heavy_rain_in_early_spring_in_Tokyo.webm?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+ "originalSha1": "1638ef285f15446afdd5e1c8952d515b882bcd72",
+ "licence": "CC BY 4.0",
+ "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+ "capture": "Genuine handheld/static video footage of a rainy street in Tokyo (Wikimedia Commons)",
+ "transcode": "H.264 yuv420p CRF 22 + AAC 128k by Tools/fetch_footage.py (ffmpeg); content unaltered",
+ "width": 1280,
+ "height": 720,
+ "fps": "59/1",
+ "seconds": 10.431,
+ "sha256": "1312e777075b853725d9076e7494c9da97affaf540264f3ad3856fc1dacb2aa7",
+ "bytes": 4128763
+}

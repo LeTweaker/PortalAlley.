@@ -233,6 +233,47 @@ void alleySteam(realitykit::surface_parameters params)
     params.surface().set_opacity(half(c.a));
 }
 
+// ------------------------------------------------------------------ captures (v1.4)
+
+[[visible]]
+void captureUnlit(realitykit::surface_parameters params)
+{
+    PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
+    (void)fogRef;
+    float2 uv = usd_uv(params.geometry().uv0());
+    float3 tint = float3(params.material_constants().base_color_tint());
+    float3 c = float3(params.textures().base_color().sample(kClamp, uv).rgb) * tint;
+    EMIT(shade_capture(c, params.uniforms().custom_parameter()));
+}
+
+[[visible]]
+void captureSky(realitykit::surface_parameters params)
+{
+    PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
+    (void)fogRef;
+    float3 zenith = float3(params.material_constants().base_color_tint());
+    float4 prm = params.uniforms().custom_parameter();
+    EMIT(shade_capture_sky(s.p, zenith, prm.xyz));
+}
+
+[[visible]]
+void captureRain(realitykit::surface_parameters params)
+{
+    PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
+    (void)fogRef;
+    float4 prm = params.uniforms().custom_parameter();
+    float t = params.uniforms().time();
+    float2 uv = params.geometry().uv0();
+    uv.y = uv.y + t * prm.x / 6.0 + prm.y;
+    float streak = float(params.textures().base_color().sample(kRepeat, usd_uv(uv)).r);
+    float4 c = shade_capture_rain(s.p, streak, float3(params.material_constants().base_color_tint()), prm);
+    EMIT(c.rgb);
+    params.surface().set_opacity(half(c.a));
+}
+
 // ------------------------------------------------------------------ portal
 
 // Cyan light channel / status LED.  prm.x intensity, prm.y opening sweep 0..1

@@ -56,3 +56,19 @@ How they are used
   repacked) and `Tools/assetgen/props.py` (glTF -> mesh pack, textures resized to 512 px).
   The app bundle contains only the converted results; the app never contacts Poly Haven.
 - Nothing was purchased; no paid or attribution-restricted asset is used.
+
+# Photographic destinations (v1.4)
+
+Both are shown with their credit line in the app (viewing picker and start card).
+
+| Asset | Type | Author | Licence | Source | Shipped as |
+|---|---|---|---|---|---|
+| Woolwich Alley | photogrammetry capture (626 photos, Sony a7R III, RealityCapture, May 2022) of the alley between Woolwich High Street and Mortgramit Square, London | artfletch | CC BY 4.0 | https://sketchfab.com/3d-models/woolwich-alley-f95ea3f1c306450ea3996bb492f01394 (downloaded from the Objaverse 1.0 mirror, SHA-256 in provenance) | `meshes/capture_woolwich*.pmsh`, `textures/capture_woolwich_albedo.jpg` (cropped, re-oriented into portal space, LOD; texture unchanged except JPEG re-encode) |
+| Heavy rain in early spring in Tokyo | video, 1280x720, 10.4 s | Fumikas Sagisavas | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Heavy_rain_in_early_spring_in_Tokyo.webm | `video/tokyo_heavy_rain.mp4` (H.264 transcode, content unaltered) |
+
+Attribution text used in the app:
+- "Woolwich Alley" by artfletch, CC BY 4.0
+- "Heavy rain in early spring in Tokyo" by Fumikas Sagisavas, CC BY 4.0 (Wikimedia Commons)
+
+Provenance files: `Vendor/captures/woolwich_alley/provenance.json`, `Vendor/footage/tokyo_heavy_rain/provenance.json`.
+Changes made: geometry cropped/transformed/decimated; video re-encoded. Nothing was purchased.

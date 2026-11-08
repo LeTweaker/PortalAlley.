@@ -72,14 +72,32 @@ final class PortalAssets {
 
     var dims: PortalDimensions { manifest.dimensions }
 
-    /// Parse mesh packs off the main thread.
+    /// Parse the always-needed mesh packs (doorway, aperture) off the main
+    /// thread.  Destination meshes are lazy: see `loadMesh(_:)`.
     func loadMeshes() async throws {
         let base = baseURL
-        let entries = manifest.meshes.map { ($0.key, $0.value.file) }
+        let entries = manifest.meshes.filter { $0.value.lazy != true }.map { ($0.key, $0.value.file) }
         let parsed: [(String, [MeshPart])] = try await Task.detached(priority: .userInitiated) {
             try entries.map { name, file in (name, try MeshPack.parse(Data(contentsOf: base.appendingPathComponent(file)))) }
         }.value
         for (k, v) in parsed { meshes[k] = v }
+    }
+
+    /// Parse one destination mesh pack off the main thread (returns seconds taken).
+    @discardableResult
+    func loadMesh(_ name: String) async throws -> Double {
+        if meshes[name] != nil { return 0 }
+        guard let info = manifest.meshes[name] else { throw AssetError.missingBundle }
+        let url = baseURL.appendingPathComponent(info.file)
+        let t0 = CFAbsoluteTimeGetCurrent()
+        let parts = try await Task.detached(priority: .userInitiated) { try MeshPack.parse(Data(contentsOf: url)) }.value
+        meshes[name] = parts
+        return CFAbsoluteTimeGetCurrent() - t0
+    }
+
+    /// Drop a parsed destination mesh (its entities hold their own GPU copies).
+    func unloadMesh(_ name: String) {
+        if manifest.meshes[name]?.lazy == true { meshes[name] = nil }
     }
 
     func parts(_ mesh: String, chunk: String? = nil) -> [MeshPart] {
@@ -115,14 +133,23 @@ final class PortalAssets {
         return ctx.makeImage()
     }
 
-    /// Preload every texture referenced by a material (called before the portal
-    /// can open, spread over run-loop turns to keep the camera view smooth).
+    /// Preload the textures of the always-loaded meshes (doorway, aperture)
+    /// before the portal can open, spread over run-loop turns.  Destination
+    /// textures load when their destination is built (see PortalRig.activate).
     func preloadTextures() async throws {
-        let needed = Set(manifest.materials.values.flatMap { ($0.textures ?? [:]).values })
+        let used = Set(meshes.values.flatMap { $0.map(\.material) })
+        let needed = Set(used.compactMap { manifest.materials[$0] }.flatMap { ($0.textures ?? [:]).values })
         for name in needed.sorted() {
             _ = try texture(name)
             await Task.yield()
         }
+    }
+
+    /// Forget cached textures and materials (entities keep their own
+    /// references), so a destination switch releases the previous one's GPU memory.
+    func purgeCaches() {
+        textures.removeAll()
+        materials.removeAll()
     }
 
     // MARK: materials

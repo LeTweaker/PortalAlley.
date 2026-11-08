@@ -56,6 +56,23 @@ texture (not a blank white wall/floor), in a clear area.
 | 39 | LiDAR on, floor portal placed, hand or chair over it | your hand hides the opening; the floor around the hole never erases it |
 | 40 | Leave a wall portal and a floor portal open 10 min each | report fps mean / p95 / % over budget, memory and thermal (1.3 has 15× the geometry and 2× the texture memory of 1.2.2) |
 
+## v1.4.0 photographic portal
+
+| # | Do this | Expect / record |
+|---|---|---|
+| 41 | Launch → Start → place a wall portal | the opening shows a real photographed alley (whitewashed brick, green moss, pipework, lamps); diagnostics log "Destination woolwich ready in N s" - record N |
+| 42 | Stand 2 m back, then step 1 m left and right | the near walls slide past the far end of the alley; nothing appears outside the opening. Screenshot from each side please |
+| 43 | Crouch, then raise the phone and look up | ground and drain when low; upper walls, lamps and a pale sky when looking up |
+| 44 | Lean in until the phone is ~30 cm from the opening | the alley fills the view with correct perspective; veil only at the threshold as in 1.3 |
+| 45 | Diagnostics: rain over the capture on/off | rain streaks at several depths; no flat sheet visible edge-on |
+| 46 | Switch the picker to **Cinematic** | Tokyo rain footage plays behind the opening; synthetic sound fades; the clip's sound plays (mute works) |
+| 47 | In Cinematic, step to ~40 cm from the opening | the "This is flat footage - step back…" message appears; dark matte edge may show |
+| 48 | In Cinematic, Reposition onto the floor or ceiling | the app switches back to Spatial (footage is wall-only) |
+| 49 | Floor and ceiling portals with the capture | looking down / up shows the alley; tops of walls look rough or melted - note how bad |
+| 50 | Diagnostics: tier High → Low | low LOD loads (check the "ready in" note); image slightly softer; fps higher |
+| 51 | Diagnostics: "Illustrated alley (v1.3)" on/off | old scene returns, then the capture again; no crash, memory returns near its earlier value |
+| 52 | 10 min each: Spatial High, Spatial Low, Cinematic | fps mean / p95 / % over budget, memory at start and end, thermal state at the end |
+
 Please report: phone model, iOS build, fps mean / p95 / % over budget, memory at launch and after
 10 min, thermal state at the end, max correction (cm), and anything that looked wrong. A photo or
 screen recording helps a lot for tuning exposure and rain brightness.
