@@ -21,7 +21,20 @@ final class PlacementRulesTests: XCTestCase {
         XCTAssertEqual(rules.evaluate(input { $0.planeKind = .unclassified; $0.hitPoint.y = 0.72 }), .notLowestSurface)
     }
     func testCameraHeight() {
-        XCTAssertEqual(rules.evaluate(input { $0.cameraPosition.y = 0.3; $0.lowestHorizontalPlaneY = nil }), .cameraHeightImplausible)
+        XCTAssertNil(rules.evaluate(input { $0.cameraPosition.y = 0.3 }), "a low-held phone can still place a portal on a detected floor")
+        XCTAssertEqual(rules.evaluate(input { $0.cameraPosition.y = 0.05; $0.lowestHorizontalPlaneY = nil }), .cameraHeightImplausible)
+        XCTAssertEqual(rules.evaluate(input { $0.cameraPosition.y = -0.1 }), .cameraHeightImplausible)
+        XCTAssertEqual(rules.evaluate(input { $0.cameraPosition.y = 3.0 }), .cameraHeightImplausible)
+    }
+    func testClassifiedFloorNotRejectedByUnrelatedLowerPlane() {
+        XCTAssertNil(rules.evaluate(input { $0.lowestHorizontalPlaneY = -0.5 }), "a lower estimate must not override ARKit's floor classification")
+    }
+    func testRaisedUnclassifiedSurfaceStillRejectedWithLowHeldPhone() {
+        XCTAssertEqual(rules.evaluate(input {
+            $0.planeKind = .unclassified
+            $0.hitPoint.y = 0.72
+            $0.cameraPosition.y = 1.0
+        }), .notLowestSurface)
     }
     func testDistanceLimits() {
         XCTAssertEqual(rules.evaluate(input { $0.hitPoint = SIMD3(0, 0, -0.6) }), .tooClose)
@@ -235,3 +248,4 @@ final class FrameStatsTests: XCTestCase {
         XCTAssertEqual(s.summary().count, 100, "invalid samples rejected")
     }
 }
+

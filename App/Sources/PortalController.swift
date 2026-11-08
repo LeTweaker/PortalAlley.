@@ -436,7 +436,9 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     private func lowestHorizontalPlaneY() -> Float? {
         arView.session.currentFrame?.anchors
             .compactMap { $0 as? ARPlaneAnchor }
-            .filter { $0.alignment == .horizontal }
+            // Only confirmed floors provide a height reference. A stray lower
+            // unclassified plane must not trap the user in "not furniture".
+            .filter { $0.alignment == .horizontal && $0.classification == .floor }
             .map { $0.transform.columns.3.y }
             .min()
     }
@@ -639,3 +641,4 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         model.diagnostics = d
     }
 }
+
