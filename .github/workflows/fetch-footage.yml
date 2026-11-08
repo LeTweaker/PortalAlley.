@@ -1,0 +1,23 @@
+name: Fetch licensed footage for review
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v1.4.0-photoreal]
+    paths: [Tools/fetch_footage.py, .github/workflows/fetch-footage.yml]
+permissions:
+  contents: write
+jobs:
+  footage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: python3 Tools/fetch_footage.py out/footage
+      - name: Publish to assets/footage
+        run: |
+          cd out
+          git init -q -b assets/footage
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A && git commit -q -m "Licensed footage for review (frames + H.264)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" assets/footage
