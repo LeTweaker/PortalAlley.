@@ -118,38 +118,118 @@ final class TrackingPolicyTests: XCTestCase {
 
 final class BoundaryPolicyTests: XCTestCase {
     let dims = PortalDimensions()
-
-    func testFarIsClear() {
-        var b = BoundaryPolicy()
-        let d = b.evaluate(cameraLocal: SIMD3(0, 1.5, 2), dims: dims)
-        XCTAssertTrue(d.worldVisible)
-        XCTAssertEqual(d.clarity, 1)
-        XCTAssertNil(d.message)
+    func camera(_ distance: Float, x: Float = 0, y: Float = 1.3) -> SIMD3<Float> {
+        SIMD3(x, y, dims.occluderZ + distance)
     }
 
-    func testApproachVeilsBeforeNearPlaneCanReachTheAperture() {
-        var b = BoundaryPolicy()
-        let at = { (z: Float) in b.evaluate(cameraLocal: SIMD3(0, 1.5, z), dims: self.dims).clarity }
-        XCTAssertEqual(at(0.6), 1, accuracy: 1e-6)
-        XCTAssertGreaterThan(at(0.35), 0)
-        XCTAssertLessThan(at(0.35), 1)
-        XCTAssertEqual(at(0.17), 0, accuracy: 1e-6, "fully veiled 30 cm from the aperture plane")
-        XCTAssertNotNil(b.evaluate(cameraLocal: SIMD3(0, 1.5, 0.2), dims: dims).message)
+    func enter(_ p: inout BoundaryPolicy) {
+        _ = p.evaluate(cameraLocal: camera(0.3), dims: dims)
+        _ = p.evaluate(cameraLocal: camera(-0.3), dims: dims)
     }
 
-    func testBehindDisablesDestinationWithHysteresis() {
-        var b = BoundaryPolicy()
-        XCTAssertFalse(b.evaluate(cameraLocal: SIMD3(0.3, 1.5, -1), dims: dims).worldVisible)
-        // just in front again but inside the hysteresis band -> still behind
-        XCTAssertFalse(b.evaluate(cameraLocal: SIMD3(0.3, 1.5, -0.07), dims: dims).worldVisible)
-        XCTAssertTrue(b.evaluate(cameraLocal: SIMD3(0.3, 1.5, 0.5), dims: dims).worldVisible)
+    func testApproachStaysClearWithoutOldThirtyCentimetreVeil() {
+        var p = BoundaryPolicy()
+        for d in [Float(0.6), 0.3, 0.1, 0.01] {
+            let v = p.evaluate(cameraLocal: camera(d), dims: dims)
+            XCTAssertTrue(v.worldVisible)
+            XCTAssertFalse(v.insideWorld)
+            XCTAssertEqual(v.clarity, 1)
+        }
     }
 
-    func testSideViewNearPlaneStaysClear() {
-        var b = BoundaryPolicy()
-        let d = b.evaluate(cameraLocal: SIMD3(2.0, 1.4, 0.05), dims: dims)
-        XCTAssertTrue(d.worldVisible)
-        XCTAssertEqual(d.clarity, 1, "edge-on views need no veil: the aperture is not in front of the lens")
+    func testCrossOpeningEntersAndPullingBackReturns() {
+        var p = BoundaryPolicy()
+        enter(&p)
+        XCTAssertTrue(p.insideWorld)
+        let inside = p.evaluate(cameraLocal: camera(-0.35), dims: dims)
+        XCTAssertTrue(inside.worldVisible && inside.insideWorld)
+        XCTAssertEqual(inside.clarity, 1)
+        let outside = p.evaluate(cameraLocal: camera(0.25), dims: dims)
+        XCTAssertFalse(p.insideWorld || outside.insideWorld)
+        XCTAssertTrue(outside.worldVisible)
+    }
+
+    func testStartingBehindDoorwayDoesNotEnter() {
+        var p = BoundaryPolicy()
+        let v = p.evaluate(cameraLocal: camera(-0.3), dims: dims)
+        XCTAssertFalse(v.insideWorld || v.worldVisible)
+    }
+
+    func testGoingAroundEitherJambDoesNotEnter() {
+        for x in [Float(-1), 1] {
+            var p = BoundaryPolicy()
+            _ = p.evaluate(cameraLocal: camera(0.2, x: x), dims: dims)
+            let v = p.evaluate(cameraLocal: camera(-0.2, x: x), dims: dims)
+            XCTAssertFalse(v.insideWorld || v.worldVisible)
+        }
+    }
+
+    func testCrossingAboveOrBelowOpeningDoesNotEnter() {
+        for y in [Float(0), 2.2] {
+            var p = BoundaryPolicy()
+            _ = p.evaluate(cameraLocal: camera(0.2, y: y), dims: dims)
+            XCTAssertFalse(p.evaluate(cameraLocal: camera(-0.2, y: y), dims: dims).insideWorld)
+        }
+    }
+
+    func testCrossingIntersectionMustBeInsideEvenIfEndpointIsInside() {
+        var p = BoundaryPolicy()
+        // End inside the rectangle but cross the plane outside the right jamb.
+        // Use a larger sample budget to isolate the intersection test.
+        p.maxSampleTravel = 3
+        _ = p.evaluate(cameraLocal: camera(0.2, x: 1.2), dims: dims)
+        XCTAssertFalse(p.evaluate(cameraLocal: camera(-0.2), dims: dims).insideWorld)
+    }
+
+    func testHysteresisDoesNotFlashCameraFeedAtThreshold() {
+        var p = BoundaryPolicy()
+        _ = p.evaluate(cameraLocal: camera(0.1), dims: dims)
+        let near = p.evaluate(cameraLocal: camera(-0.005), dims: dims)
+        XCTAssertFalse(p.insideWorld, "stable side not committed inside the hysteresis band")
+        XCTAssertTrue(near.worldVisible && near.insideWorld, "render the eligible side without a camera-feed flash")
+        _ = p.evaluate(cameraLocal: camera(-0.04), dims: dims)
+        XCTAssertTrue(p.insideWorld)
+        _ = p.evaluate(cameraLocal: camera(0.005), dims: dims)
+        XCTAssertTrue(p.insideWorld, "stable side is retained until clearly outside")
+        _ = p.evaluate(cameraLocal: camera(0.04), dims: dims)
+        XCTAssertFalse(p.insideWorld)
+    }
+
+    func testInsideDoesNotExitThroughSolidWall() {
+        var p = BoundaryPolicy()
+        enter(&p)
+        _ = p.evaluate(cameraLocal: camera(-0.3, x: 0.7), dims: dims)
+        let v = p.evaluate(cameraLocal: camera(0.2, x: 0.7), dims: dims)
+        XCTAssertTrue(p.insideWorld && v.insideWorld)
+    }
+
+    func testTrackingGapCannotCreateCrossing() {
+        var p = BoundaryPolicy()
+        _ = p.evaluate(cameraLocal: camera(0.2), dims: dims)
+        _ = p.evaluate(cameraLocal: camera(-0.2), dims: dims, allowCrossing: false)
+        XCTAssertFalse(p.evaluate(cameraLocal: camera(-0.3), dims: dims).insideWorld)
+    }
+
+    func testSuspendPreservesInsideButDiscardsCrossingSegment() {
+        var p = BoundaryPolicy()
+        enter(&p)
+        p.suspendCrossing()
+        let v = p.evaluate(cameraLocal: camera(0.2), dims: dims)
+        XCTAssertTrue(p.insideWorld && v.insideWorld)
+    }
+
+    func testLargePoseJumpDoesNotEnter() {
+        var p = BoundaryPolicy()
+        _ = p.evaluate(cameraLocal: camera(1), dims: dims)
+        XCTAssertFalse(p.evaluate(cameraLocal: camera(-1), dims: dims).insideWorld)
+    }
+
+    func testSideViewNearThresholdDoesNotEnterOrVeil() {
+        var p = BoundaryPolicy()
+        let v = p.evaluate(cameraLocal: camera(0.05, x: 2), dims: dims)
+        XCTAssertTrue(v.worldVisible)
+        XCTAssertFalse(v.insideWorld)
+        XCTAssertEqual(v.clarity, 1)
     }
 }
 
@@ -248,4 +328,5 @@ final class FrameStatsTests: XCTestCase {
         XCTAssertEqual(s.summary().count, 100, "invalid samples rejected")
     }
 }
+
 

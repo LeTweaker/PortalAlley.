@@ -80,7 +80,7 @@ private struct StartCard: View {
                     .font(.system(size: 16))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85))
-                Text("Use it in a clear, well-lit space. You look through the doorway - there's no need to step into it.")
+                Text("Reach your phone through the opening to look around the alley. Pull it back through the doorway to return.")
                     .font(.system(size: 13))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.65))
@@ -197,3 +197,4 @@ private struct FatalCard: View {
         .padding(24)
     }
 }
+

@@ -2,50 +2,86 @@ import Foundation
 import simd
 
 public struct BoundaryDecision: Equatable, Sendable {
-    /// Whether the destination may render at all.  False behind the aperture
-    /// plane: the depth-only occluder only works from the room side.
     public var worldVisible: Bool
-    /// 0 = veil fully opaque (too close to the aperture), 1 = clear.
+    /// Opening animations may still use a veil; approaching the portal does not.
     public var clarity: Float
     public var behind: Bool
+    /// Render the destination around the camera, with a return aperture.
+    public var insideWorld: Bool
     public var message: String?
 }
 
-/// Deliberate behaviour near and behind the doorway (look-through portal; no
-/// walk-through in this release).
-///
-/// * In front, inside the doorway's footprint: the view clears fully at
-///   `clearDistance` from the aperture plane and is veiled completely at
-///   `veilDistance`, so the camera near plane never reaches the occluder and the
-///   user is told to step back instead of walking into it.
-/// * Behind the aperture plane (with hysteresis) the destination is disabled;
-///   the doorway then reads as a finished object from the back.
+/// Tracks the camera passing THROUGH the doorway, not simply being behind it.
+/// Camera positions are always in the existing anchored portal coordinate space.
 public struct BoundaryPolicy: Sendable {
-    public var veilDistance: Float = 0.30
-    public var clearDistance: Float = 0.55
-    public var behindEnter: Float = 0.02
-    public var behindExit: Float = 0.08
-    public private(set) var behind = false
+    public var crossingHysteresis: Float = 0.02
+    public var edgeMargin: Float = 0.02
+    /// Discontinuous tracking poses must not become apparent door crossings.
+    public var maxSampleTravel: Float = 0.75
+    public private(set) var insideWorld = false
+    private var previousCamera: SIMD3<Float>?
+    private var pendingInside: Bool?
 
     public init() {}
 
-    public mutating func evaluate(cameraLocal c: SIMD3<Float>, dims: PortalDimensions) -> BoundaryDecision {
-        let d = c.z - dims.frameBackZ          // distance in front of the aperture plane
-        if behind {
-            if d > behindExit { behind = false }
-        } else if d < behindEnter {
-            behind = true
+    /// Do not infer a crossing over a tracking interruption or relocalization.
+    /// Preserve the last confirmed side, but discard the discontinuous segment.
+    public mutating func suspendCrossing() {
+        previousCamera = nil
+        pendingInside = nil
+    }
+
+    public mutating func evaluate(cameraLocal c: SIMD3<Float>, dims: PortalDimensions,
+                                  allowCrossing: Bool = true) -> BoundaryDecision {
+        let d = c.z - dims.occluderZ
+        if allowCrossing {
+            if let p = previousCamera {
+                if simd_distance(p, c) <= maxSampleTravel {
+                    let pd = p.z - dims.occluderZ
+                    if (pd >= 0 && d < 0) || (pd <= 0 && d > 0) {
+                        let dz = d - pd
+                        if abs(dz) > 1e-6 {
+                            let t = -pd / dz
+                            let hit = p + (c - p) * t
+                            if t >= 0 && t <= 1 &&
+                               abs(hit.x) < dims.openHalfWidth - edgeMargin &&
+                               hit.y > dims.openY0 + edgeMargin &&
+                               hit.y < dims.openY1 - edgeMargin {
+                                pendingInside = d < 0
+                            } else {
+                                // Going around the frame is not entering it.
+                                pendingInside = nil
+                            }
+                        }
+                    }
+                    if pendingInside == true && d <= -crossingHysteresis {
+                        insideWorld = true
+                        pendingInside = nil
+                    } else if pendingInside == false && d >= crossingHysteresis {
+                        insideWorld = false
+                        pendingInside = nil
+                    }
+                } else {
+                    pendingInside = nil
+                }
+            }
+            previousCamera = c
+        } else {
+            suspendCrossing()
         }
-        if behind {
-            return BoundaryDecision(worldVisible: false, clarity: 0, behind: true,
-                                    message: "View the doorway from the front")
+        // Within the 2 cm hysteresis band, render the side the camera physically
+        // occupies for an eligible crossing. This avoids a flash of camera feed
+        // between crossing the aperture and committing the new stable side.
+        var renderInside = insideWorld
+        if let pending = pendingInside {
+            if pending && d < 0 { renderInside = true }
+            if !pending && d > 0 { renderInside = false }
         }
-        let inFootprint = abs(c.x) < dims.outerHalfWidth + 0.25 && c.y < dims.outerTop + 0.3
-        guard inFootprint else {
-            return BoundaryDecision(worldVisible: true, clarity: 1, behind: false, message: nil)
-        }
-        let clarity = PortalMath.smoothstep(veilDistance, clearDistance, d)
-        return BoundaryDecision(worldVisible: true, clarity: clarity, behind: false,
-                                message: clarity < 0.6 ? "Step back - this is as close as the view goes" : nil)
+        let visible = renderInside || d >= 0
+        return BoundaryDecision(worldVisible: visible, clarity: visible ? 1 : 0,
+                                behind: d < 0, insideWorld: renderInside,
+                                message: renderInside ? "Pull your phone back through the doorway to return"
+                                    : (d < 0 ? "Enter through the opening, or return to the front" : nil))
     }
 }
+
