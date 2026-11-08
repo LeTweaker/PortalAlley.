@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 from pathlib import Path
 import time
 import urllib.request
@@ -47,14 +48,34 @@ def request(url: str) -> bytes:
 
 
 def descriptor(files: dict, role: str, required: bool = True) -> dict | None:
-    tree = files.get(role, {}).get("1k", {})
-    # PNG preserves normal/roughness data; JPEG is a supported provider fallback.
-    for fmt in ("png", "jpg", "jpeg"):
-        entry = tree.get(fmt)
-        if isinstance(entry, dict) and "url" in entry:
-            return entry
+    # Resolve concrete file records rather than assuming a fixed API nesting.
+    # Some assets call the map "Diffuse" and some expose texture dependencies
+    # under their model exports. Keep the download bounded to 1k/2k images.
+    aliases = {"diff": ("diff", "diffuse", "albedo"), "rough": ("rough", "roughness"),
+               "nor_gl": ("nor_gl", "normal_gl", "normal"), "ao": ("ao", "ambient_occlusion")}[role]
+    candidates = []
+    def walk(node, path=()):
+        if isinstance(node, dict):
+            url = str(node.get("url", ""))
+            lower = url.lower()
+            joined = "/".join(path).lower()
+            match = any(re.search(r"[_/]" + re.escape(alias) + r"[_/.]", lower)
+                        or alias in [part.lower() for part in path] for alias in aliases)
+            resolution = 1 if re.search(r"(?:/|_)1k(?:/|_|\.)", lower) or "1k" in joined.split("/") else (2 if re.search(r"(?:/|_)2k(?:/|_|\.)", lower) or "2k" in joined.split("/") else 0)
+            fmt = urlparse(url).path.rsplit(".", 1)[-1].lower()
+            if url and match and resolution and fmt in ("png", "jpg", "jpeg"):
+                candidates.append((resolution, 0 if fmt == "png" else 1, node))
+            for key, value in node.items():
+                if isinstance(value, (dict, list)):
+                    walk(value, path + (str(key),))
+        elif isinstance(node, list):
+            for value in node:
+                walk(value, path)
+    walk(files)
+    if candidates:
+        return sorted(candidates, key=lambda x: x[:2])[0][2]
     if required:
-        raise ValueError(f"Provider has no 1k {role} image")
+        raise ValueError(f"Provider has no bounded {role} image; keys: {list(files)}; metadata sample: {json.dumps(files)[:1800]}")
     return None
 
 
