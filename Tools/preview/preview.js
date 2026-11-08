@@ -25,6 +25,12 @@
   const OPEN = Q.has("open") ? Number(Q.get("open")) : 1.0;
   const ROOM = Q.get("room") !== "0";
   const NO_OCC = Q.get("noOccluder") === "1";
+  const NO_BAKE = Q.get("noBake") === "1";   // simulate the iOS 17 path (no uv1)
+  // v1.3: mounting surface + boundary style + Resize/Rotate (mirror of PortalCore)
+  const MODE = Q.get("mode") || "wall";           // wall | floor | ceiling
+  const STYLE = Q.get("style") || "subtle";       // subtle | classic
+  const ASCALE = Number(Q.get("scale") || 1), AROT = Number(Q.get("rot") || 0);
+  const AIM = vec(Q.get("aim"), MODE === "floor" ? [0, 0, -1.6] : (MODE === "ceiling" ? [0, 2.6, -1.4] : null));
   const W = Number(Q.get("w") || 540), H = Number(Q.get("h") || 1170);
   const BASE = "../../";
   const status = (s) => { document.getElementById("status").textContent = s; };
@@ -55,6 +61,59 @@
     return o;
   }
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const I4 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const fromCols = (x, y, z, t) => [x[0], x[1], x[2], 0, y[0], y[1], y[2], 0, z[0], z[1], z[2], 0, t[0], t[1], t[2], 1];
+  const xform = (m, p, w = 1) => [0, 1, 2].map((r) => m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r] * w);
+  function inv4(m) {   // general 4x4 inverse (column-major)
+    const a = m, o = new Array(16);
+    o[0] = a[5]*a[10]*a[15]-a[5]*a[11]*a[14]-a[9]*a[6]*a[15]+a[9]*a[7]*a[14]+a[13]*a[6]*a[11]-a[13]*a[7]*a[10];
+    o[4] = -a[4]*a[10]*a[15]+a[4]*a[11]*a[14]+a[8]*a[6]*a[15]-a[8]*a[7]*a[14]-a[12]*a[6]*a[11]+a[12]*a[7]*a[10];
+    o[8] = a[4]*a[9]*a[15]-a[4]*a[11]*a[13]-a[8]*a[5]*a[15]+a[8]*a[7]*a[13]+a[12]*a[5]*a[11]-a[12]*a[7]*a[9];
+    o[12] = -a[4]*a[9]*a[14]+a[4]*a[10]*a[13]+a[8]*a[5]*a[14]-a[8]*a[6]*a[13]-a[12]*a[5]*a[10]+a[12]*a[6]*a[9];
+    o[1] = -a[1]*a[10]*a[15]+a[1]*a[11]*a[14]+a[9]*a[2]*a[15]-a[9]*a[3]*a[14]-a[13]*a[2]*a[11]+a[13]*a[3]*a[10];
+    o[5] = a[0]*a[10]*a[15]-a[0]*a[11]*a[14]-a[8]*a[2]*a[15]+a[8]*a[3]*a[14]+a[12]*a[2]*a[11]-a[12]*a[3]*a[10];
+    o[9] = -a[0]*a[9]*a[15]+a[0]*a[11]*a[13]+a[8]*a[1]*a[15]-a[8]*a[3]*a[13]-a[12]*a[1]*a[11]+a[12]*a[3]*a[9];
+    o[13] = a[0]*a[9]*a[14]-a[0]*a[10]*a[13]-a[8]*a[1]*a[14]+a[8]*a[2]*a[13]+a[12]*a[1]*a[10]-a[12]*a[2]*a[9];
+    o[2] = a[1]*a[6]*a[15]-a[1]*a[7]*a[14]-a[5]*a[2]*a[15]+a[5]*a[3]*a[14]+a[13]*a[2]*a[7]-a[13]*a[3]*a[6];
+    o[6] = -a[0]*a[6]*a[15]+a[0]*a[7]*a[14]+a[4]*a[2]*a[15]-a[4]*a[3]*a[14]-a[12]*a[2]*a[7]+a[12]*a[3]*a[6];
+    o[10] = a[0]*a[5]*a[15]-a[0]*a[7]*a[13]-a[4]*a[1]*a[15]+a[4]*a[3]*a[13]+a[12]*a[1]*a[7]-a[12]*a[3]*a[5];
+    o[14] = -a[0]*a[5]*a[14]+a[0]*a[6]*a[13]+a[4]*a[1]*a[14]-a[4]*a[2]*a[13]-a[12]*a[1]*a[6]+a[12]*a[2]*a[5];
+    o[3] = -a[1]*a[6]*a[11]+a[1]*a[7]*a[10]+a[5]*a[2]*a[11]-a[5]*a[3]*a[10]-a[9]*a[2]*a[7]+a[9]*a[3]*a[6];
+    o[7] = a[0]*a[6]*a[11]-a[0]*a[7]*a[10]-a[4]*a[2]*a[11]+a[4]*a[3]*a[10]+a[8]*a[2]*a[7]-a[8]*a[3]*a[6];
+    o[11] = -a[0]*a[5]*a[11]+a[0]*a[7]*a[9]+a[4]*a[1]*a[11]-a[4]*a[3]*a[9]-a[8]*a[1]*a[7]+a[8]*a[3]*a[5];
+    o[15] = a[0]*a[5]*a[10]-a[0]*a[6]*a[9]-a[4]*a[1]*a[10]+a[4]*a[2]*a[9]+a[8]*a[1]*a[6]-a[8]*a[2]*a[5];
+    const det = a[0] * o[0] + a[1] * o[4] + a[2] * o[8] + a[3] * o[12];
+    return o.map((x) => x / det);
+  }
+  // PortalCore PortalPose.make / DestinationMode (keep in sync)
+  function portalPose(dims) {
+    if (MODE === "wall") return I4;
+    let f = [AIM[0] - EYE[0], 0, AIM[2] - EYE[2]]; f = normz(f);
+    const z = MODE === "floor" ? [0, 1, 0] : [0, -1, 0];
+    const y = MODE === "floor" ? f : f.map((v) => -v);
+    const x = cross(y, z);
+    const c = (dims.openY0 + dims.openY1) / 2;
+    const o = [0, 1, 2].map((i) => AIM[i] - z[i] * dims.occluderZ - y[i] * c);
+    return fromCols(x, y, z, o);
+  }
+  const APERTURE = { floor: [0.1, 7.0, -8.0], ceiling: [0.1, 2.5, -5.2] };
+  function worldXform(dims) {
+    if (MODE === "wall") return I4;
+    const R = MODE === "floor" ? [[1, 0, 0], [0, 0, 1], [0, -1, 0]] : [[1, 0, 0], [0, 0, -1], [0, 1, 0]];   // columns
+    const a = APERTURE[MODE];
+    const ra = [0, 1, 2].map((i) => R[0][i] * a[0] + R[1][i] * a[1] + R[2][i] * a[2]);
+    const centre = [0, (dims.openY0 + dims.openY1) / 2, dims.occluderZ];
+    return fromCols(R[0], R[1], R[2], centre.map((v, i) => v - ra[i]));
+  }
+  const CLIP = MODE === "floor" ? APERTURE.floor[1] / 20 : (MODE === "ceiling" ? 0.5 + APERTURE.ceiling[1] / 20 : 0);
+  function apertureAdjust(dims) {
+    const a = AROT * Math.PI / 180, c = Math.cos(a) * ASCALE, sn = Math.sin(a) * ASCALE;
+    const pv = [0, MODE === "wall" ? 0 : (dims.openY0 + dims.openY1) / 2, 0];
+    const m = [c, sn, 0, 0, -sn, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const p = xform(m, pv);
+    m[12] = pv[0] - p[0]; m[13] = pv[1] - p[1];
+    return m;
+  }
 
   // ------------------------------------------------- boundary policy (mirror of PortalCore.BoundaryPolicy)
   function boundary(cam, dims) {
@@ -75,15 +134,19 @@
     let o = 0;
     const magic = td.decode(new Uint8Array(buf, 0, 4)); o = 4;
     if (magic !== "PMSH") throw new Error("bad mesh");
-    o += 4; const n = dv.getUint32(o, true); o += 4;
+    const version = dv.getUint32(o, true); o += 4; const n = dv.getUint32(o, true); o += 4;
     const parts = [];
     for (let i = 0; i < n; i++) {
       const nl = dv.getUint16(o, true); o += 2; const name = td.decode(new Uint8Array(buf, o, nl)); o += nl;
       const ml = dv.getUint16(o, true); o += 2; const mat = td.decode(new Uint8Array(buf, o, ml)); o += ml;
       const vc = dv.getUint32(o, true); o += 4; const ic = dv.getUint32(o, true); o += 4;
+      let flags = 0; if (version >= 2) { flags = dv.getUint32(o, true); o += 4; }
       const take = (count, T, bytes) => { const a = new T(buf.slice(o, o + count * bytes)); o += count * bytes; return a; };
-      const pos = take(vc * 3, Float32Array, 4), nrm = take(vc * 3, Float32Array, 4), uv = take(vc * 2, Float32Array, 4), idx = take(ic, Uint32Array, 4);
-      parts.push({ name, mat, pos, nrm, uv, idx });
+      const pos = take(vc * 3, Float32Array, 4), nrm = take(vc * 3, Float32Array, 4), uv = take(vc * 2, Float32Array, 4);
+      // no baked lighting: (0,0) = "absent", like a RealityKit mesh without uv1
+      const uv1 = (flags & 1) && !NO_BAKE ? take(vc * 2, Float32Array, 4) : ((flags & 1) ? (take(vc * 2, Float32Array, 4), new Float32Array(vc * 2)) : new Float32Array(vc * 2));
+      const idx = take(ic, Uint32Array, 4);
+      parts.push({ name, mat, pos, nrm, uv, uv1, idx });
     }
     return parts;
   }
@@ -113,10 +176,12 @@
 
   // ---------------------------------------------------------------- shaders
   const VS = `#version 300 es
-  in vec3 aPos; in vec3 aNrm; in vec2 aUV;
-  uniform mat4 uVP;
-  out vec3 vPos; out vec3 vNrm; out vec2 vUV;
-  void main(){ vPos = aPos; vNrm = aNrm; vUV = aUV; gl_Position = uVP * vec4(aPos,1.0); }`;
+  in vec3 aPos; in vec3 aNrm; in vec2 aUV; in vec2 aUV1;
+  uniform mat4 uVP; uniform mat4 uModel;
+  out vec3 vPos; out vec3 vNrm; out vec2 vUV; out vec2 vUV1;
+  // shading happens in the mesh's own space (portal / alley space), exactly as
+  // the Metal shaders do via model_to_world; uCam is given in that space
+  void main(){ vPos = aPos; vNrm = aNrm; vUV = aUV; vUV1 = aUV1; gl_Position = uVP * uModel * vec4(aPos,1.0); }`;
 
   const PRE = `#version 300 es
   precision highp float; precision highp int;
@@ -126,35 +191,51 @@
   #define INLINE
   `;
   const COMMON = `
-  uniform sampler2D uBase; uniform sampler2D uCustom; uniform sampler2D uAux;
-  uniform vec3 uTint; uniform vec4 uPrm; uniform float uTime; uniform int uLightCount; uniform vec3 uCam;
-  in vec3 vPos; in vec3 vNrm; in vec2 vUV;
+  uniform sampler2D uBase; uniform sampler2D uCustom; uniform sampler2D uAux; uniform sampler2D uNormal; uniform int uHasNormal;
+  uniform vec3 uTint; uniform vec4 uPrm; uniform float uTime; uniform int uLightCount; uniform vec3 uCam; uniform float uClip;
+  in vec3 vPos; in vec3 vNrm; in vec2 vUV; in vec2 vUV1;
   out vec4 frag;
   vec2 usd_uv(vec2 uv){ return vec2(uv.x, 1.0 - uv.y); }
   vec3 to_srgb(vec3 c){ c = clamp(c, 0.0, 1.0); return mix(c*12.92, 1.055*pow(c, vec3(1.0/2.4)) - 0.055, step(vec3(0.0031308), c)); }
   vec3 V(){ return normalize(uCam - vPos); }
+  // same derivative cotangent frame as photographic_normal() in AlleyShaders.metal
+  vec3 photo_normal(vec3 p, vec3 n, vec2 uv){
+    if(uHasNormal==0) return n;
+    vec3 dp1=dFdx(p), dp2=dFdy(p); vec2 duv1=dFdx(uv), duv2=dFdy(uv);
+    vec3 a=cross(dp2,n), b=cross(n,dp1);
+    vec3 T=a*duv1.x+b*duv2.x, B=a*duv1.y+b*duv2.y;
+    float sc=inversesqrt(max(max(dot(T,T),dot(B,B)),1e-10));
+    vec3 d=texture(uNormal,uv).rgb*2.0-1.0; d.xy*=0.7;
+    return normalize(T*sc*d.x+B*sc*d.y+n*d.z);
+  }
+  vec3 lit_color(out float alpha){ vec3 v=V(); vec3 n=normalize(vNrm); if(dot(n,v)<0.0) n=-n;
+    vec2 uv=usd_uv(vUV)*(uPrm.z>0.0?uPrm.z:1.0);
+    vec4 base=texture(uBase,uv); alpha=base.a; vec3 alb=base.rgb*uTint; vec3 pk=texture(uCustom,uv).rgb;
+    n=photo_normal(vPos,n,uv);
+    return shade_lit(vPos,n,v,alb,pk,uPrm,uTime,uLightCount,vUV1,a_fog_ref(uClip)); }
+  #define CLIP() if(a_clip_keep(uClip, vPos.y) < 0.5) discard
   `;
   const ENTRY = {
-    alleyLit: `void main(){ vec3 v=V(); vec3 n=normalize(vNrm); if(dot(n,v)<0.0) n=-n; vec2 uv=usd_uv(vUV);
-      vec3 alb=texture(uBase,uv).rgb*uTint; vec3 pk=texture(uCustom,uv).rgb;
-      frag=vec4(to_srgb(shade_lit(vPos,n,v,alb,pk,uPrm,uTime,uLightCount)),1.0);} `,
-    alleyGround: `void main(){ vec3 v=V(); vec2 uv=usd_uv(vUV);
+    alleyLit: `void main(){ CLIP(); float a; frag=vec4(to_srgb(lit_color(a)),1.0);} `,
+    alleyLitCutout: `void main(){ CLIP(); float a; vec3 c=lit_color(a); if(a<0.5) discard; frag=vec4(to_srgb(c),1.0);} `,
+    alleyGround: `void main(){ CLIP(); vec3 v=V(); vec2 uv=usd_uv(vUV);
       vec3 alb=texture(uBase,uv).rgb*uTint; vec3 pk=texture(uCustom,uv).rgb;
       float pud=texture(uAux, vec2((vPos.x+9.0)/24.0, -vPos.z/24.0)).r;
-      frag=vec4(to_srgb(shade_ground(vPos,v,alb,pk,pud,uPrm,uTime,uLightCount)),1.0);} `,
-    alleyDecal: `void main(){ vec3 v=V(); vec2 uv=usd_uv(vUV); vec4 paint=texture(uBase,uv);
+      vec3 dn=photo_normal(vPos,vec3(0.0,1.0,0.0),uv);
+      frag=vec4(to_srgb(shade_ground_detail(vPos,v,alb,pk,pud,uPrm,uTime,uLightCount,dn,vUV1,a_fog_ref(uClip))),1.0);} `,
+    alleyDecal: `void main(){ CLIP(); vec3 v=V(); vec2 uv=usd_uv(vUV); vec4 paint=texture(uBase,uv);
       float pud=texture(uAux, vec2((vPos.x+9.0)/24.0, -vPos.z/24.0)).r;
-      vec3 c=shade_ground(vPos,v,paint.rgb*uTint,vec3(0.35,1.0,0.6),pud*0.6,vec4(uPrm.x,uPrm.y,0.6,uPrm.w),uTime,uLightCount);
+      vec3 c=shade_ground(vPos,v,paint.rgb*uTint,vec3(0.35,1.0,0.6),pud*0.6,vec4(uPrm.x,uPrm.y,0.6,uPrm.w),uTime,uLightCount,a_fog_ref(uClip));
       frag=vec4(to_srgb(c), clamp(paint.a*uPrm.z,0.0,1.0));} `,
-    alleyEmissive: `void main(){ vec3 v=V(); vec2 uv=vUV; if(uPrm.z!=0.0) uv.x=fract(uv.x+uTime*uPrm.z);
-      vec3 e=texture(uBase,usd_uv(uv)).rgb*uTint; frag=vec4(to_srgb(shade_emissive(vPos,normalize(vNrm),v,e,uPrm,uTime)),1.0);} `,
-    alleyWindow: `void main(){ vec3 v=V(); vec3 n=normalize(vNrm); vec2 uv=vUV+window_parallax(n,v,uPrm.y);
-      vec3 interior=texture(uBase,usd_uv(uv)).rgb; frag=vec4(to_srgb(shade_window(vPos,n,v,interior,uPrm,uTime,uLightCount)),1.0);} `,
-    alleySky: `void main(){ vec3 c=texture(uBase,usd_uv(vUV)).rgb; frag=vec4(to_srgb(shade_sky(c,uPrm)),1.0);} `,
-    alleyRain: `void main(){ vec2 uv=vUV; uv.y=uv.y+uTime*uPrm.x/6.0+uPrm.y; float s=texture(uBase,usd_uv(uv)).r;
-      vec4 c=shade_rain(vPos,s,uPrm,uTime,uLightCount); frag=vec4(to_srgb(c.rgb),c.a);} `,
-    alleySteam: `void main(){ vec2 uv=vUV; uv.y-=uTime*uPrm.x; uv.x+=sin(uTime*0.3+uv.y*2.0)*0.05; float d=texture(uBase,usd_uv(uv)).r;
-      vec4 c=shade_steam(vPos,d,uPrm,uTime,uLightCount); frag=vec4(to_srgb(c.rgb),c.a);} `,
+    alleyEmissive: `void main(){ CLIP(); vec3 v=V(); vec2 uv=vUV; if(uPrm.z!=0.0) uv.x=fract(uv.x+uTime*uPrm.z);
+      vec3 e=texture(uBase,usd_uv(uv)).rgb*uTint; frag=vec4(to_srgb(shade_emissive(vPos,normalize(vNrm),v,e,uPrm,uTime,a_fog_ref(uClip))),1.0);} `,
+    alleyWindow: `void main(){ CLIP(); vec3 v=V(); vec3 n=normalize(vNrm); vec2 uv=vUV+window_parallax(n,v,uPrm.y);
+      vec3 interior=texture(uBase,usd_uv(uv)).rgb; frag=vec4(to_srgb(shade_window(vPos,n,v,interior,uPrm,uTime,uLightCount,a_fog_ref(uClip))),1.0);} `,
+    alleySky: `void main(){ CLIP(); vec3 c=texture(uBase,usd_uv(vUV)).rgb; frag=vec4(to_srgb(shade_sky(c,uPrm)),1.0);} `,
+    alleyRain: `void main(){ CLIP(); vec2 uv=vUV; uv.y=uv.y+uTime*uPrm.x/6.0+uPrm.y; float s=texture(uBase,usd_uv(uv)).r;
+      vec4 c=shade_rain(vPos,s,uPrm,uTime,uLightCount,a_fog_ref(uClip)); frag=vec4(to_srgb(c.rgb),c.a);} `,
+    alleySteam: `void main(){ CLIP(); vec2 uv=vUV; uv.y-=uTime*uPrm.x; uv.x+=sin(uTime*0.3+uv.y*2.0)*0.05; float d=texture(uBase,usd_uv(uv)).r;
+      vec4 c=shade_steam(vPos,d,uPrm,uTime,uLightCount,a_fog_ref(uClip)); frag=vec4(to_srgb(c.rgb),c.a);} `,
     portalEdge: `void main(){ float u=vUV.x; float sw=0.0; if(uPrm.y>0.0&&uPrm.y<1.0){ float d=(u-uPrm.y*5.6)/0.35; sw=exp(-d*d)*1.6; }
       frag=vec4(to_srgb(a_tonemap(uTint*(uPrm.x+sw),1.0)),1.0);} `,
     portalVeil: `void main(){ frag=vec4(to_srgb(uTint), clamp(uPrm.x,0.0,1.0)); }`,
@@ -179,6 +260,7 @@
         frag=vec4(to_srgb(col),1.0);} `,
     room: `void main(){ vec3 n=normalize(vNrm); vec3 c=uTint; vec2 g=vPos.xz;
         if(n.y>0.5){ float plank=step(0.97,fract(g.x*5.0)); float tone=0.9+0.1*sin(floor(g.x*5.0)*12.9); c*=tone*(1.0-0.25*plank); }
+        else if(n.z>0.5 && vPos.z>-0.2){ c=vec3(0.80,0.77,0.71); }
         float l=0.55+0.45*max(dot(n,normalize(vec3(-0.3,0.9,0.4))),0.0); frag=vec4(c*l,1.0);} `,
   };
 
@@ -203,7 +285,7 @@
     for (const [name, body] of Object.entries(ENTRY)) {
       const fs = compile(gl.FRAGMENT_SHADER, PRE + lightsGLSL.replace(/^\/\/.*$/gm, "") + "\n" + core + COMMON + body);
       const p = gl.createProgram(); gl.attachShader(p, vs); gl.attachShader(p, fs);
-      gl.bindAttribLocation(p, 0, "aPos"); gl.bindAttribLocation(p, 1, "aNrm"); gl.bindAttribLocation(p, 2, "aUV");
+      gl.bindAttribLocation(p, 0, "aPos"); gl.bindAttribLocation(p, 1, "aNrm"); gl.bindAttribLocation(p, 2, "aUV"); gl.bindAttribLocation(p, 3, "aUV1");
       gl.linkProgram(p);
       if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error("link " + name + ": " + gl.getProgramInfoLog(p));
       const u = {};
@@ -223,7 +305,7 @@
     function upload(part) {
       const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
       const mk = (data, loc, size) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0); };
-      mk(part.pos, 0, 3); mk(part.nrm, 1, 3); mk(part.uv, 2, 2);
+      mk(part.pos, 0, 3); mk(part.nrm, 1, 3); mk(part.uv, 2, 2); mk(part.uv1 || new Float32Array(part.pos.length / 3 * 2), 3, 2);
       const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, part.idx, gl.STATIC_DRAW);
       gl.bindVertexArray(null);
       let cx = 0, cy = 0, cz = 0; const n = part.pos.length / 3;
@@ -241,36 +323,73 @@
       quad([4, 0, -4.2], [0, 0, 9.2], [0, 2.6, 0], [-1, 0, 0]);      // right wall
       quad([-1.6, 0, -4.18], [0.9, 0, 0], [0, 1.9, 0], [0, 0, 1]);   // a door in the back wall (reference)
       quad([2.6, 0.0, -1.5], [0.9, 0, 0], [0, 0.75, 0], [0, 0, 1]);  // a cabinet beside the doorway area
+      if (MODE === "ceiling") quad([-4, 2.6, -4.2], [8, 0, 0], [0, 0, 9.2], [0, -1, 0]);   // ceiling
+      if (MODE === "wall" && STYLE === "subtle") {
+        // the real wall the opening is cut into (subtle style is for walls;
+        // floating doorways use the classic frame), part of the camera image
+        const hw = 0.48 * ASCALE, y0 = 0.03 * ASCALE, y1 = 2.05 * ASCALE, z = -0.125, n = [0, 0, 1];
+        quad([-4, 0, z], [4 - hw, 0, 0], [0, 2.6, 0], n);
+        quad([hw, 0, z], [4 - hw, 0, 0], [0, 2.6, 0], n);
+        quad([-hw, 0, z], [2 * hw, 0, 0], [0, y0, 0], n);
+        quad([-hw, y1, z], [2 * hw, 0, 0], [0, 2.6 - y1, 0], n);
+      }
       return { pos: new Float32Array(P), nrm: new Float32Array(N), uv: new Float32Array(UV), idx: new Uint32Array(I), mat: "room" };
     }
 
+    const P = portalPose(dims), Wm = worldXform(dims), A = apertureAdjust(dims);
+    const PA = mul(P, A), PW = mul(P, Wm);
+    const APERTURE_CHUNKS = new Set(["frame", "occluder", "occluder_exact", "leaf", "shadow", "spill", "veil", "veil_exact", "seam", "footprint", "trim", "reveal"]);
     const parts = [];
-    for (const k of ["frame", "portal_aux", "alley"]) for (const p of meshes[k]) parts.push(upload(p));
+    for (const k of ["frame", "portal_aux", "alley"]) for (const p of meshes[k]) {
+      const u = upload(p);
+      u.world = !APERTURE_CHUNKS.has(p.name);
+      u.model = u.world ? PW : PA;
+      parts.push(u);
+    }
+    // floor / ceiling views see all around: close the sky (mirrors PortalRig full sky)
+    if (MODE !== "wall") {
+      const Pp = [], Nn = [], Uu = [], Ii = [], na = 48, ne = 24, R = 110;
+      for (let j = 0; j <= ne; j++) for (let i = 0; i <= na; i++) {
+        const el = -Math.PI / 2 + Math.PI * j / ne, az = 2 * Math.PI * i / na;
+        const d = [Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)];
+        Pp.push(d[0] * R, d[1] * R - 0.12, d[2] * R); Nn.push(-d[0], -d[1], -d[2]); Uu.push(i / na, Math.max(0, Math.min(1, (el * 180 / Math.PI + 5) / 90)));
+      }
+      for (let j = 0; j < ne; j++) for (let i = 0; i < na; i++) { const q = j * (na + 1) + i, r = q + na + 1; Ii.push(q, r + 1, q + 1, q, r, r + 1); }
+      const sky = upload({ name: "fullsky", mat: "sky", pos: new Float32Array(Pp), nrm: new Float32Array(Nn), uv: new Float32Array(Uu), idx: new Uint32Array(Ii) });
+      sky.world = true; sky.model = PW; sky.cullNone = true;
+      parts.push(sky);
+    }
     const room = upload(roomMesh());
+    room.model = I4;
 
     // camera
-    const view = lookAt(EYE, LOOK, [0, 1, 0]);
+    const view = lookAt(EYE, LOOK, Math.abs(normz(sub(LOOK, EYE))[1]) > 0.98 ? [0, 0, -1] : [0, 1, 0]);
     const proj = persp((FOV * Math.PI) / 180, W / H, 0.01, 300);
     const VP = mul(proj, view);
-    const B = boundary(EYE, dims);
+    const camPortal = xform(inv4(PA), EYE);
+    const B = boundary(camPortal, dims);
 
-    function setCommon(pr, mat) {
+    function setCommon(pr, mat, part) {
       gl.useProgram(pr.p);
+      const M = part ? part.model : I4;
       gl.uniformMatrix4fv(pr.u.uVP, false, VP);
+      if (pr.u.uModel) gl.uniformMatrix4fv(pr.u.uModel, false, M);
       if (pr.u.uTime) gl.uniform1f(pr.u.uTime, TIME);
-      if (pr.u.uCam) gl.uniform3fv(pr.u.uCam, EYE);
+      if (pr.u.uCam) gl.uniform3fv(pr.u.uCam, xform(inv4(M), EYE));
+      if (pr.u.uClip) gl.uniform1f(pr.u.uClip, part && part.world ? CLIP : 0);
       if (pr.u.uLightCount) gl.uniform1i(pr.u.uLightCount, low ? manifest.lowTierLightCount : 16);
       if (pr.u.uTint) gl.uniform3fv(pr.u.uTint, mat.tint || mat.color || [1, 1, 1]);
       if (pr.u.uPrm) gl.uniform4fv(pr.u.uPrm, mat.params || [0, 0, 0, 1]);
       const t = mat.textures || {};
       const bind = (unit, name, uname) => { if (!pr.u[uname]) return; gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex[name] || tex.white); gl.uniform1i(pr.u[uname], unit); };
-      bind(0, t.baseColor, "uBase"); bind(1, t.custom || t.roughness, "uCustom"); bind(2, t.emissiveColor, "uAux");
+      bind(0, t.baseColor, "uBase"); bind(1, t.custom || t.roughness, "uCustom"); bind(2, t.emissiveColor, "uAux"); bind(3, t.normal, "uNormal");
+      if (pr.u.uHasNormal) gl.uniform1i(pr.u.uHasNormal, t.normal ? 1 : 0);
       if (mat.shader === "pbr") {
         gl.uniform1f(pr.u.uMetal, mat.metallic ?? 0); gl.uniform1f(pr.u.uRough, mat.roughness ?? 0.5);
         gl.uniform1i(pr.u.uHasTex, t.baseColor ? 1 : 0);
       }
     }
-    function draw(part, matOverride) {
+    function draw(part) {
       gl.bindVertexArray(part.vao);
       gl.drawElements(gl.TRIANGLES, part.count, gl.UNSIGNED_INT, 0);
     }
@@ -283,40 +402,43 @@
     // 1. camera image
     if (ROOM) {
       gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
-      setCommon(progs.room, { tint: [0.62, 0.56, 0.48] });
+      gl.disable(gl.CULL_FACE);
+      setCommon(progs.room, { tint: [0.62, 0.56, 0.48] }, room);
       draw(room);
+      gl.enable(gl.CULL_FACE);
       gl.depthMask(true); gl.enable(gl.DEPTH_TEST);
     }
     gl.depthFunc(gl.LEQUAL);
 
-    const isWorld = (p) => !["frame", "occluder", "leaf", "shadow", "spill", "veil", "seam", "footprint"].includes(p.name);
+    const subtle = STYLE === "subtle";
+    const styleHides = subtle ? new Set(["frame", "occluder", "veil"]) : new Set(["trim", "reveal", "occluder_exact", "veil_exact"]);
     const visible = (p) => {
-      if (p.name === "footprint" || p.name === "spill") return false;
-      if (p.name === "leaf") return false;
-      if (isWorld(p) && !B.worldVisible) return false;
+      if (["footprint", "spill", "leaf", "shadow"].includes(p.name) || styleHides.has(p.name)) return false;
+      if (p.name === "backcap" && MODE === "wall") return false;
+      if (p.world && !B.worldVisible) return false;
       if (low && p.mat.startsWith("rain_") && ["rain_1", "rain_3", "rain_5"].includes(p.mat)) return false;
       return true;
     };
+    const occName = subtle ? "occluder_exact" : "occluder";
 
     // 2. occluders (depth only)
     if (!NO_OCC && B.worldVisible) {
       gl.colorMask(false, false, false, false);
-      setCommon(progs.previewGhost, { params: [0, 0, 0, 0] });
-      for (const p of parts) if (p.name === "occluder") draw(p);
-      // aperture leaves: two unit leaves scaled to cover the hole as OPEN closes it
+      gl.disable(gl.CULL_FACE);
+      for (const p of parts) if (p.name === occName) { setCommon(progs.previewGhost, { params: [0, 0, 0, 0] }, p); draw(p); }
       const closeAmt = 1 - OPEN;
       if (closeAmt > 0.001) {
         const leaf = parts.find((p) => p.name === "leaf");
-        const hw = dims.holeHalfWidth, y0 = dims.holeY0, y1 = dims.holeY1, z = dims.apertureLeafZ;
+        const hw = subtle ? dims.openHalfWidth : dims.holeHalfWidth, y0 = subtle ? dims.openY0 : dims.holeY0, y1 = subtle ? dims.openY1 : dims.holeY1, z = dims.apertureLeafZ;
         const covered = hw * closeAmt;
         for (const sgn of [-1, 1]) {
-          // leaf spans x from sgn*hw to sgn*(hw-covered)
           const xa = sgn < 0 ? -hw : hw - covered, xb = sgn < 0 ? -hw + covered : hw;
           const M = [xb - xa, 0, 0, 0, 0, y1 - y0, 0, 0, 0, 0, 1, 0, xa, y0, z, 1];
-          gl.uniformMatrix4fv(progs.previewGhost.u.uVP, false, mul(VP, M));
+          setCommon(progs.previewGhost, { params: [0, 0, 0, 0] }, { model: mul(PA, M), world: false });
           draw(leaf);
         }
       }
+      gl.enable(gl.CULL_FACE);
       gl.colorMask(true, true, true, true);
     }
 
@@ -324,29 +446,37 @@
     const transparentShaders = new Set(["alleyRain", "alleySteam", "alleyDecal", "portalVeil", "portalSeam", "contactShadow", "floorSpill", "previewGhost"]);
     let drawn = 0;
     for (const p of parts) {
-      if (!visible(p) || p.name === "occluder") continue;
+      if (!visible(p) || p.name === "occluder" || p.name === "occluder_exact") continue;
       const mat = manifest.materials[p.mat];
       if (!mat || transparentShaders.has(mat.shader) || mat.shader === "occlusion") continue;
       const pr = progs[mat.shader];
       if (!pr) continue;
-      setCommon(pr, mat); draw(p); drawn++;
+      if (mat.cull === "none" || p.cullNone) gl.disable(gl.CULL_FACE); else gl.enable(gl.CULL_FACE);
+      setCommon(pr, mat, p); draw(p); drawn++;
     }
+    gl.enable(gl.CULL_FACE);
 
     // 4. transparents back to front
     gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.depthMask(false);
     const trans = parts.filter((p) => visible(p) && manifest.materials[p.mat] && transparentShaders.has(manifest.materials[p.mat].shader));
-    trans.sort((a, b) => Math.hypot(...sub(b.centroid, EYE)) - Math.hypot(...sub(a.centroid, EYE)));
+    const worldEye = (p) => xform(p.model, p.centroid);
+    trans.sort((a, b) => Math.hypot(...sub(worldEye(b), EYE)) - Math.hypot(...sub(worldEye(a), EYE)));
     for (const p of trans) {
       const mat = JSON.parse(JSON.stringify(manifest.materials[p.mat]));
-      if (p.name === "veil") { if (!B.worldVisible) continue; mat.params[0] = Q.has("veil") ? Number(Q.get("veil")) : B.veil; }
-      if (p.name === "seam") { if (OPEN >= 0.999 || OPEN <= 0.0) continue; mat.params[0] = 1.0; mat.params[1] = 0.5 * OPEN * (2 * dims.holeHalfWidth) / 1.0; }
+      if (p.name === "veil" || p.name === "veil_exact") { if (!B.worldVisible) continue; mat.params[0] = Q.has("veil") ? Number(Q.get("veil")) : B.veil; }
+      if (p.name === "seam") {
+        if (OPEN >= 0.999 || OPEN <= 0.0) continue;
+        mat.params[0] = subtle ? 0.5 : 1.0;
+        mat.params[1] = 0.5 * OPEN * (2 * (subtle ? dims.openHalfWidth : dims.holeHalfWidth)) / 1.0;
+        if (subtle) mat.tint = [1.0, 0.9, 0.78];
+      }
       if (mat.shader === "alleyRain" || mat.shader === "alleySteam") gl.disable(gl.CULL_FACE); else gl.enable(gl.CULL_FACE);
-      setCommon(progs[mat.shader], mat); draw(p); drawn++;
+      setCommon(progs[mat.shader], mat, p); draw(p); drawn++;
     }
     gl.depthMask(true); gl.disable(gl.BLEND);
     gl.finish();
-    status(`eye ${EYE.map((x) => x.toFixed(2))} t=${TIME} draws=${drawn} world=${B.worldVisible} veil=${B.veil.toFixed(2)} quality=${QUALITY}`);
+    status(`eye ${EYE.map((x) => x.toFixed(2))} ${MODE}/${STYLE} t=${TIME} draws=${drawn} world=${B.worldVisible} veil=${B.veil.toFixed(2)} quality=${QUALITY}`);
     document.title = "READY";
   }
   main().catch((e) => { status("ERROR " + e.message); document.title = "ERROR"; console.error(e); });

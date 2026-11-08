@@ -37,6 +37,7 @@ struct DeveloperPanel: View {
             }
             .pickerStyle(.segmented)
             Toggle("Easy Mode (CREATE PORTAL button)", isOn: Binding(get: { model.easyMode }, set: { model.setEasyMode($0) }))
+            Toggle("Classic doorway frame (instead of the cut edge)", isOn: Binding(get: { model.classicBoundary }, set: { model.setClassicBoundary($0) }))
             if model.lidarSupported {
                 Toggle("LiDAR occlusion (room side only)", isOn: Binding(get: { model.lidarOcclusion }, set: { model.setLidar($0) }))
             } else {

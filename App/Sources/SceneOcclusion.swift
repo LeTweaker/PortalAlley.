@@ -24,6 +24,9 @@ final class SceneOcclusion {
     private let material = OcclusionMaterial()
     private let volume = DoorwayVolume()
     var dims = PortalDimensions()
+    /// Floor / ceiling portal: the mounting surface is the aperture plane
+    /// itself, so drop everything near that plane (not just the room floor).
+    var horizontal = false
     private(set) var triangleCount = 0
     private(set) var rebuilds = 0
 
@@ -65,7 +68,7 @@ final class SceneOcclusion {
         lastBuild = now
         rebuilds += 1
         let oldTris = triCounts[anchor.identifier] ?? 0
-        guard let (mesh, tris) = Self.buildMesh(anchor, portalWorld: portalWorld, dims: dims, volume: volume) else {
+        guard let (mesh, tris) = Self.buildMesh(anchor, portalWorld: portalWorld, dims: dims, volume: volume, horizontal: horizontal) else {
             remove(anchor.identifier)
             return
         }
@@ -80,7 +83,8 @@ final class SceneOcclusion {
         triangleCount += tris - oldTris
     }
 
-    static func buildMesh(_ a: ARMeshAnchor, portalWorld: simd_float4x4, dims: PortalDimensions, volume: DoorwayVolume) -> (MeshResource, Int)? {
+    static func buildMesh(_ a: ARMeshAnchor, portalWorld: simd_float4x4, dims: PortalDimensions, volume: DoorwayVolume,
+                          horizontal: Bool = false) -> (MeshResource, Int)? {
         let g = a.geometry
         let vs = g.vertices
         let vbase = vs.buffer.contents()
@@ -96,7 +100,9 @@ final class SceneOcclusion {
         func index(_ k: Int) -> Int {
             bpi == 4 ? Int(fbase.load(fromByteOffset: k * 4, as: UInt32.self)) : Int(fbase.load(fromByteOffset: k * 2, as: UInt16.self))
         }
-        let minZ = dims.frameBackZ + 0.02
+        // wall: anything behind the aperture plane; floor/ceiling: also the
+        // reconstruction noise of the surface the opening is cut into
+        let minZ = horizontal ? dims.occluderZ + 0.06 : dims.frameBackZ + 0.02
         var remap = [Int32](repeating: -1, count: vs.count)
         var positions: [SIMD3<Float>] = []
         var indices: [UInt32] = []
@@ -104,7 +110,7 @@ final class SceneOcclusion {
             let i0 = index(3 * f), i1 = index(3 * f + 1), i2 = index(3 * f + 2)
             let a0 = local[i0], a1 = local[i1], a2 = local[i2]
             if a0.z < minZ || a1.z < minZ || a2.z < minZ { continue }                 // behind the aperture plane
-            if a0.y < 0.10 && a1.y < 0.10 && a2.y < 0.10 { continue }                 // floor
+            if !horizontal && a0.y < 0.10 && a1.y < 0.10 && a2.y < 0.10 { continue }  // room floor (wall portals)
             if volume.contains(a0) || volume.contains(a1) || volume.contains(a2) { continue }
             for i in [i0, i1, i2] {
                 if remap[i] < 0 { remap[i] = Int32(positions.count); positions.append(local[i]) }

@@ -1,6 +1,186 @@
 {
  "version": 1,
  "generatedBy": "Tools/assetgen/build.py",
+ "sources": {
+  "photographedSurfaces": {
+   "tile": {
+    "source": "concrete_tile_facade",
+    "realSizeM": 2.09,
+    "sourceLinearLuminance": 0.0398,
+    "targetLuminance": 0.2,
+    "rotation": 0
+   },
+   "concrete": {
+    "source": "concrete_wall_008",
+    "realSizeM": 2.71,
+    "sourceLinearLuminance": 0.2379,
+    "targetLuminance": null,
+    "rotation": 0
+   },
+   "concrete2": {
+    "source": "concrete_layers",
+    "realSizeM": 1.55,
+    "sourceLinearLuminance": 0.1344,
+    "targetLuminance": null,
+    "rotation": 0
+   },
+   "plaster": {
+    "source": "painted_concrete_02",
+    "realSizeM": 4.0,
+    "sourceLinearLuminance": 0.0868,
+    "targetLuminance": 0.3,
+    "rotation": 0
+   },
+   "redplaster": {
+    "source": "red_plaster_weathered",
+    "realSizeM": 2.0,
+    "sourceLinearLuminance": 0.1682,
+    "targetLuminance": null,
+    "rotation": 0
+   },
+   "shutter": {
+    "source": "corrugated_iron",
+    "realSizeM": 2.0,
+    "sourceLinearLuminance": 0.4389,
+    "targetLuminance": 0.3,
+    "rotation": 90
+   },
+   "corrugated": {
+    "source": "corrugated_iron",
+    "realSizeM": 2.0,
+    "sourceLinearLuminance": 0.4385,
+    "targetLuminance": 0.22,
+    "rotation": 0
+   },
+   "wood": {
+    "source": "black_painted_planks",
+    "realSizeM": 2.0,
+    "sourceLinearLuminance": 0.0129,
+    "targetLuminance": 0.045,
+    "rotation": 0
+   },
+   "asphalt": {
+    "source": "asphalt_02",
+    "realSizeM": 3.0,
+    "sourceLinearLuminance": 0.1098,
+    "targetLuminance": null,
+    "rotation": 0
+   },
+   "pavement": {
+    "source": "garage_floor",
+    "realSizeM": 1.89,
+    "sourceLinearLuminance": 0.1602,
+    "targetLuminance": null,
+    "rotation": 0
+   },
+   "brick": {
+    "source": "mixed_brick_wall",
+    "realSizeM": 1.7,
+    "sourceLinearLuminance": 0.1954,
+    "targetLuminance": null,
+    "rotation": 0
+   },
+   "rust": {
+    "source": "rust_coarse_01",
+    "realSizeM": 2.2,
+    "sourceLinearLuminance": 0.0593,
+    "targetLuminance": null,
+    "rotation": 0
+   }
+  },
+  "scannedProps": {
+   "prop_exterior_aircon_unit_01": {
+    "source": "Vendor/polyhaven/models/exterior_aircon_unit/textures/exterior_aircon_unit_01_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.012
+   },
+   "prop_exterior_aircon_unit_02": {
+    "source": "Vendor/polyhaven/models/exterior_aircon_unit/textures/exterior_aircon_unit_01_opacity_1k.jpg",
+    "cutout": true,
+    "metalFraction": 0.144
+   },
+   "prop_exterior_aircon_unit_rusted_01": {
+    "source": "Vendor/polyhaven/models/exterior_aircon_unit/textures/exterior_aircon_unit_rusted_01_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.012
+   },
+   "prop_exterior_aircon_unit_rusted_02": {
+    "source": "Vendor/polyhaven/models/exterior_aircon_unit/textures/exterior_aircon_unit_rusted_02_opacity_1k.jpg",
+    "cutout": true,
+    "metalFraction": 0.146
+   },
+   "prop_metal_trash_can": {
+    "source": "Vendor/polyhaven/models/metal_trash_can/textures/metal_trash_can_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.416
+   },
+   "prop_metal_trash_can_rust": {
+    "source": "Vendor/polyhaven/models/metal_trash_can/textures/metal_trash_can_rust_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.25
+   },
+   "prop_modular_airduct_circular_01": {
+    "source": "Vendor/polyhaven/models/modular_airduct_circular_01/textures/modular_airduct_circular_01_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.988
+   },
+   "prop_mounted_fluorescent_lights": {
+    "source": "Vendor/polyhaven/models/mounted_fluorescent_lights/textures/mounted_fluorescent_lights_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.035
+   },
+   "prop_mounted_fluorescent_lights_glass": {
+    "source": "Vendor/polyhaven/models/mounted_fluorescent_lights/textures/mounted_fluorescent_lights_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.035
+   },
+   "prop_propane_tank": {
+    "source": "Vendor/polyhaven/models/propane_tank/textures/propane_tank_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.09
+   },
+   "prop_rollershutter_window_03": {
+    "source": "Vendor/polyhaven/models/rollershutter_window_03/textures/rollershutter_window_03_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.994
+   },
+   "prop_security_camera_01": {
+    "source": "Vendor/polyhaven/models/security_camera_01/textures/security_camera_01_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.011
+   },
+   "prop_security_light": {
+    "source": "Vendor/polyhaven/models/security_light/textures/security_light_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.403
+   },
+   "prop_security_light_bulb": {
+    "source": "Vendor/polyhaven/models/security_light/textures/security_light_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.403
+   },
+   "prop_utility_box_01": {
+    "source": "Vendor/polyhaven/models/utility_box_01/textures/utility_box_01_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.133
+   },
+   "prop_utility_box_02": {
+    "source": "Vendor/polyhaven/models/utility_box_02/textures/utility_box_02_diff_1k.jpg",
+    "cutout": false,
+    "metalFraction": 0.146
+   }
+  },
+  "bakedLighting": {
+   "receivers": 288519,
+   "occluders": 354996,
+   "aoRays": 64,
+   "aoDistance": 1.6,
+   "shadowSamples": 8,
+   "meanAO": 0.558,
+   "meanVisibility": 0.652
+  },
+  "license": "CC0 (Poly Haven); see Vendor/polyhaven/provenance.json"
+ },
  "dimensions": {
   "openHalfWidth": 0.48,
   "openY0": 0.03,
@@ -25,7 +205,7 @@
  },
  "textures": {
   "tile_albedo": {
-   "file": "textures/tile_albedo.png",
+   "file": "textures/tile_albedo.jpg",
    "semantic": "color",
    "size": [
     1024,
@@ -36,12 +216,20 @@
    "file": "textures/tile_packed.png",
    "semantic": "raw",
    "size": [
+    512,
+    512
+   ]
+  },
+  "tile_normal": {
+   "file": "textures/tile_normal.jpg",
+   "semantic": "raw",
+   "size": [
     1024,
     1024
    ]
   },
   "concrete_albedo": {
-   "file": "textures/concrete_albedo.png",
+   "file": "textures/concrete_albedo.jpg",
    "semantic": "color",
    "size": [
     1024,
@@ -52,16 +240,48 @@
    "file": "textures/concrete_packed.png",
    "semantic": "raw",
    "size": [
+    512,
+    512
+   ]
+  },
+  "concrete_normal": {
+   "file": "textures/concrete_normal.jpg",
+   "semantic": "raw",
+   "size": [
     1024,
     1024
    ]
   },
-  "plaster_albedo": {
-   "file": "textures/plaster_albedo.png",
+  "concrete2_albedo": {
+   "file": "textures/concrete2_albedo.jpg",
    "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "concrete2_packed": {
+   "file": "textures/concrete2_packed.png",
+   "semantic": "raw",
    "size": [
     512,
     512
+   ]
+  },
+  "concrete2_normal": {
+   "file": "textures/concrete2_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "plaster_albedo": {
+   "file": "textures/plaster_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
    ]
   },
   "plaster_packed": {
@@ -70,6 +290,590 @@
    "size": [
     512,
     512
+   ]
+  },
+  "plaster_normal": {
+   "file": "textures/plaster_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "redplaster_albedo": {
+   "file": "textures/redplaster_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "redplaster_packed": {
+   "file": "textures/redplaster_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "redplaster_normal": {
+   "file": "textures/redplaster_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "shutter_albedo": {
+   "file": "textures/shutter_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "shutter_packed": {
+   "file": "textures/shutter_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "shutter_normal": {
+   "file": "textures/shutter_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "corrugated_albedo": {
+   "file": "textures/corrugated_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "corrugated_packed": {
+   "file": "textures/corrugated_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "corrugated_normal": {
+   "file": "textures/corrugated_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "wood_albedo": {
+   "file": "textures/wood_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "wood_packed": {
+   "file": "textures/wood_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "wood_normal": {
+   "file": "textures/wood_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "asphalt_albedo": {
+   "file": "textures/asphalt_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "asphalt_packed": {
+   "file": "textures/asphalt_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "asphalt_normal": {
+   "file": "textures/asphalt_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "pavement_albedo": {
+   "file": "textures/pavement_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "pavement_packed": {
+   "file": "textures/pavement_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "pavement_normal": {
+   "file": "textures/pavement_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "brick_albedo": {
+   "file": "textures/brick_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    1024,
+    1024
+   ]
+  },
+  "brick_packed": {
+   "file": "textures/brick_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "brick_normal": {
+   "file": "textures/brick_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "rust_albedo": {
+   "file": "textures/rust_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "rust_packed": {
+   "file": "textures/rust_packed.png",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "rust_normal": {
+   "file": "textures/rust_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_exterior_aircon_unit_01_albedo": {
+   "file": "textures/prop_exterior_aircon_unit_01_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_exterior_aircon_unit_01_packed": {
+   "file": "textures/prop_exterior_aircon_unit_01_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_01_normal": {
+   "file": "textures/prop_exterior_aircon_unit_01_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_02_albedo": {
+   "file": "textures/prop_exterior_aircon_unit_02_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_exterior_aircon_unit_02_packed": {
+   "file": "textures/prop_exterior_aircon_unit_02_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_02_normal": {
+   "file": "textures/prop_exterior_aircon_unit_02_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_01_albedo": {
+   "file": "textures/prop_exterior_aircon_unit_rusted_01_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_01_packed": {
+   "file": "textures/prop_exterior_aircon_unit_rusted_01_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_01_normal": {
+   "file": "textures/prop_exterior_aircon_unit_rusted_01_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_02_albedo": {
+   "file": "textures/prop_exterior_aircon_unit_rusted_02_albedo.png",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_02_packed": {
+   "file": "textures/prop_exterior_aircon_unit_rusted_02_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_02_normal": {
+   "file": "textures/prop_exterior_aircon_unit_rusted_02_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_metal_trash_can_albedo": {
+   "file": "textures/prop_metal_trash_can_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_metal_trash_can_packed": {
+   "file": "textures/prop_metal_trash_can_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_metal_trash_can_normal": {
+   "file": "textures/prop_metal_trash_can_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_metal_trash_can_rust_albedo": {
+   "file": "textures/prop_metal_trash_can_rust_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_metal_trash_can_rust_packed": {
+   "file": "textures/prop_metal_trash_can_rust_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_metal_trash_can_rust_normal": {
+   "file": "textures/prop_metal_trash_can_rust_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_modular_airduct_circular_01_albedo": {
+   "file": "textures/prop_modular_airduct_circular_01_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_modular_airduct_circular_01_packed": {
+   "file": "textures/prop_modular_airduct_circular_01_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_modular_airduct_circular_01_normal": {
+   "file": "textures/prop_modular_airduct_circular_01_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_mounted_fluorescent_lights_albedo": {
+   "file": "textures/prop_mounted_fluorescent_lights_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_mounted_fluorescent_lights_packed": {
+   "file": "textures/prop_mounted_fluorescent_lights_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_mounted_fluorescent_lights_normal": {
+   "file": "textures/prop_mounted_fluorescent_lights_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_mounted_fluorescent_lights_glass_albedo": {
+   "file": "textures/prop_mounted_fluorescent_lights_glass_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_mounted_fluorescent_lights_glass_packed": {
+   "file": "textures/prop_mounted_fluorescent_lights_glass_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_mounted_fluorescent_lights_glass_normal": {
+   "file": "textures/prop_mounted_fluorescent_lights_glass_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_propane_tank_albedo": {
+   "file": "textures/prop_propane_tank_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_propane_tank_packed": {
+   "file": "textures/prop_propane_tank_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_propane_tank_normal": {
+   "file": "textures/prop_propane_tank_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_rollershutter_window_03_albedo": {
+   "file": "textures/prop_rollershutter_window_03_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_rollershutter_window_03_packed": {
+   "file": "textures/prop_rollershutter_window_03_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_rollershutter_window_03_normal": {
+   "file": "textures/prop_rollershutter_window_03_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_security_camera_01_albedo": {
+   "file": "textures/prop_security_camera_01_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_security_camera_01_packed": {
+   "file": "textures/prop_security_camera_01_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_security_camera_01_normal": {
+   "file": "textures/prop_security_camera_01_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_security_light_albedo": {
+   "file": "textures/prop_security_light_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_security_light_packed": {
+   "file": "textures/prop_security_light_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_security_light_normal": {
+   "file": "textures/prop_security_light_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_security_light_bulb_albedo": {
+   "file": "textures/prop_security_light_bulb_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_security_light_bulb_packed": {
+   "file": "textures/prop_security_light_bulb_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_security_light_bulb_normal": {
+   "file": "textures/prop_security_light_bulb_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_utility_box_01_albedo": {
+   "file": "textures/prop_utility_box_01_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_utility_box_01_packed": {
+   "file": "textures/prop_utility_box_01_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_utility_box_01_normal": {
+   "file": "textures/prop_utility_box_01_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_utility_box_02_albedo": {
+   "file": "textures/prop_utility_box_02_albedo.jpg",
+   "semantic": "color",
+   "size": [
+    512,
+    512
+   ]
+  },
+  "prop_utility_box_02_packed": {
+   "file": "textures/prop_utility_box_02_packed.png",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
+   ]
+  },
+  "prop_utility_box_02_normal": {
+   "file": "textures/prop_utility_box_02_normal.jpg",
+   "semantic": "raw",
+   "size": [
+    256,
+    256
    ]
   },
   "metal_albedo": {
@@ -82,38 +886,6 @@
   },
   "metal_packed": {
    "file": "textures/metal_packed.png",
-   "semantic": "raw",
-   "size": [
-    512,
-    512
-   ]
-  },
-  "shutter_albedo": {
-   "file": "textures/shutter_albedo.png",
-   "semantic": "color",
-   "size": [
-    512,
-    512
-   ]
-  },
-  "shutter_packed": {
-   "file": "textures/shutter_packed.png",
-   "semantic": "raw",
-   "size": [
-    512,
-    512
-   ]
-  },
-  "wood_albedo": {
-   "file": "textures/wood_albedo.png",
-   "semantic": "color",
-   "size": [
-    512,
-    512
-   ]
-  },
-  "wood_packed": {
-   "file": "textures/wood_packed.png",
    "semantic": "raw",
    "size": [
     512,
@@ -134,22 +906,6 @@
    "size": [
     512,
     512
-   ]
-  },
-  "asphalt_albedo": {
-   "file": "textures/asphalt_albedo.png",
-   "semantic": "color",
-   "size": [
-    1024,
-    1024
-   ]
-  },
-  "asphalt_packed": {
-   "file": "textures/asphalt_packed.png",
-   "semantic": "raw",
-   "size": [
-    1024,
-    1024
    ]
   },
   "grate_albedo": {
@@ -350,17 +1106,18 @@
    "shader": "alleyLit",
    "textures": {
     "baseColor": "tile_albedo",
-    "custom": "tile_packed"
+    "custom": "tile_packed",
+    "normal": "tile_normal"
    },
    "tint": [
-    0.92,
-    0.84,
-    0.7
+    1.0,
+    0.86,
+    0.66
    ],
    "params": [
     0.45,
     0.9,
-    0.0,
+    0.9569377990430623,
     1.0
    ]
   },
@@ -368,17 +1125,18 @@
    "shader": "alleyLit",
    "textures": {
     "baseColor": "tile_albedo",
-    "custom": "tile_packed"
+    "custom": "tile_packed",
+    "normal": "tile_normal"
    },
    "tint": [
-    0.6,
-    0.65,
+    0.62,
+    0.66,
     0.7
    ],
    "params": [
     0.45,
     0.9,
-    0.0,
+    0.9569377990430623,
     1.0
    ]
   },
@@ -386,7 +1144,8 @@
    "shader": "alleyLit",
    "textures": {
     "baseColor": "concrete_albedo",
-    "custom": "concrete_packed"
+    "custom": "concrete_packed",
+    "normal": "concrete_normal"
    },
    "tint": [
     1.0,
@@ -396,25 +1155,26 @@
    "params": [
     0.4,
     0.4,
-    0.0,
+    1.1070110701107012,
     1.0
    ]
   },
   "concrete_dark": {
    "shader": "alleyLit",
    "textures": {
-    "baseColor": "concrete_albedo",
-    "custom": "concrete_packed"
+    "baseColor": "concrete2_albedo",
+    "custom": "concrete2_packed",
+    "normal": "concrete2_normal"
    },
    "tint": [
-    0.55,
-    0.55,
-    0.58
+    0.72,
+    0.72,
+    0.75
    ],
    "params": [
     0.4,
     0.4,
-    0.0,
+    1.9354838709677418,
     1.0
    ]
   },
@@ -422,17 +1182,18 @@
    "shader": "alleyLit",
    "textures": {
     "baseColor": "plaster_albedo",
-    "custom": "plaster_packed"
+    "custom": "plaster_packed",
+    "normal": "plaster_normal"
    },
    "tint": [
-    0.95,
-    0.87,
-    0.72
+    1.0,
+    0.9,
+    0.74
    ],
    "params": [
     0.3,
     0.3,
-    0.0,
+    0.5,
     1.0
    ]
   },
@@ -440,35 +1201,56 @@
    "shader": "alleyLit",
    "textures": {
     "baseColor": "plaster_albedo",
-    "custom": "plaster_packed"
+    "custom": "plaster_packed",
+    "normal": "plaster_normal"
    },
    "tint": [
-    0.66,
-    0.82,
-    0.74
+    0.7,
+    0.86,
+    0.78
    ],
    "params": [
     0.3,
     0.3,
-    0.0,
+    0.5,
     1.0
    ]
   },
   "plaster_rust": {
    "shader": "alleyLit",
    "textures": {
-    "baseColor": "plaster_albedo",
-    "custom": "plaster_packed"
+    "baseColor": "redplaster_albedo",
+    "custom": "redplaster_packed",
+    "normal": "redplaster_normal"
    },
    "tint": [
-    0.52,
-    0.27,
-    0.19
+    1.0,
+    1.0,
+    1.0
    ],
    "params": [
     0.3,
     0.3,
-    0.0,
+    1.0,
+    1.0
+   ]
+  },
+  "brick": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "brick_albedo",
+    "custom": "brick_packed",
+    "normal": "brick_normal"
+   },
+   "tint": [
+    0.9,
+    0.9,
+    0.9
+   ],
+   "params": [
+    0.45,
+    0.4,
+    1.1764705882352942,
     1.0
    ]
   },
@@ -526,21 +1308,60 @@
     1.0
    ]
   },
+  "rust_metal": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "rust_albedo",
+    "custom": "rust_packed",
+    "normal": "rust_normal"
+   },
+   "tint": [
+    0.8,
+    0.8,
+    0.8
+   ],
+   "params": [
+    0.5,
+    0.6,
+    1.0,
+    1.0
+   ]
+  },
   "shutter": {
    "shader": "alleyLit",
    "textures": {
     "baseColor": "shutter_albedo",
-    "custom": "shutter_packed"
+    "custom": "shutter_packed",
+    "normal": "shutter_normal"
    },
    "tint": [
-    0.72,
-    0.75,
-    0.79
+    0.8,
+    0.83,
+    0.86
    ],
    "params": [
     0.5,
     0.9,
-    0.0,
+    1.0,
+    1.0
+   ]
+  },
+  "corrugated": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "corrugated_albedo",
+    "custom": "corrugated_packed",
+    "normal": "corrugated_normal"
+   },
+   "tint": [
+    0.7,
+    0.72,
+    0.72
+   ],
+   "params": [
+    0.6,
+    0.9,
+    1.4,
     1.0
    ]
   },
@@ -548,17 +1369,18 @@
    "shader": "alleyLit",
    "textures": {
     "baseColor": "wood_albedo",
-    "custom": "wood_packed"
+    "custom": "wood_packed",
+    "normal": "wood_normal"
    },
    "tint": [
-    0.85,
-    0.75,
-    0.65
+    1.0,
+    0.72,
+    0.52
    ],
    "params": [
     0.3,
     0.5,
-    0.0,
+    1.0,
     1.0
    ]
   },
@@ -619,8 +1441,8 @@
   "rubber_black": {
    "shader": "alleyLit",
    "textures": {
-    "baseColor": "concrete_albedo",
-    "custom": "concrete_packed"
+    "baseColor": "concrete2_albedo",
+    "custom": "concrete2_packed"
    },
    "tint": [
     0.1,
@@ -691,9 +1513,10 @@
   "concrete_ground": {
    "shader": "alleyGround",
    "textures": {
-    "baseColor": "concrete_albedo",
-    "custom": "concrete_packed",
-    "emissiveColor": "puddles"
+    "baseColor": "pavement_albedo",
+    "custom": "pavement_packed",
+    "emissiveColor": "puddles",
+    "normal": "pavement_normal"
    },
    "tint": [
     0.8,
@@ -710,9 +1533,10 @@
   "concrete_stoop": {
    "shader": "alleyGround",
    "textures": {
-    "baseColor": "concrete_albedo",
-    "custom": "concrete_packed",
-    "emissiveColor": "black"
+    "baseColor": "pavement_albedo",
+    "custom": "pavement_packed",
+    "emissiveColor": "black",
+    "normal": "pavement_normal"
    },
    "tint": [
     0.62,
@@ -731,7 +1555,8 @@
    "textures": {
     "baseColor": "asphalt_albedo",
     "custom": "asphalt_packed",
-    "emissiveColor": "puddles"
+    "emissiveColor": "puddles",
+    "normal": "asphalt_normal"
    },
    "tint": [
     1,
@@ -1213,6 +2038,310 @@
    "blend": "transparent",
    "cull": "none"
   },
+  "prop_exterior_aircon_unit_01": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_exterior_aircon_unit_01_albedo",
+    "custom": "prop_exterior_aircon_unit_01_packed",
+    "normal": "prop_exterior_aircon_unit_01_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_exterior_aircon_unit_02": {
+   "shader": "alleyLitCutout",
+   "textures": {
+    "baseColor": "prop_exterior_aircon_unit_02_albedo",
+    "custom": "prop_exterior_aircon_unit_02_packed",
+    "normal": "prop_exterior_aircon_unit_02_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ],
+   "cull": "none"
+  },
+  "prop_exterior_aircon_unit_rusted_01": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_exterior_aircon_unit_rusted_01_albedo",
+    "custom": "prop_exterior_aircon_unit_rusted_01_packed",
+    "normal": "prop_exterior_aircon_unit_rusted_01_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_exterior_aircon_unit_rusted_02": {
+   "shader": "alleyLitCutout",
+   "textures": {
+    "baseColor": "prop_exterior_aircon_unit_rusted_02_albedo",
+    "custom": "prop_exterior_aircon_unit_rusted_02_packed",
+    "normal": "prop_exterior_aircon_unit_rusted_02_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ],
+   "cull": "none"
+  },
+  "prop_metal_trash_can": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_metal_trash_can_albedo",
+    "custom": "prop_metal_trash_can_packed",
+    "normal": "prop_metal_trash_can_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_metal_trash_can_rust": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_metal_trash_can_rust_albedo",
+    "custom": "prop_metal_trash_can_rust_packed",
+    "normal": "prop_metal_trash_can_rust_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_modular_airduct_circular_01": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_modular_airduct_circular_01_albedo",
+    "custom": "prop_modular_airduct_circular_01_packed",
+    "normal": "prop_modular_airduct_circular_01_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_mounted_fluorescent_lights": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_mounted_fluorescent_lights_albedo",
+    "custom": "prop_mounted_fluorescent_lights_packed",
+    "normal": "prop_mounted_fluorescent_lights_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_mounted_fluorescent_lights_glass": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "prop_mounted_fluorescent_lights_glass_albedo",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    0.86,
+    0.95,
+    1.0
+   ],
+   "params": [
+    1.9,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "prop_propane_tank": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_propane_tank_albedo",
+    "custom": "prop_propane_tank_packed",
+    "normal": "prop_propane_tank_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_rollershutter_window_03": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_rollershutter_window_03_albedo",
+    "custom": "prop_rollershutter_window_03_packed",
+    "normal": "prop_rollershutter_window_03_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_security_camera_01": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_security_camera_01_albedo",
+    "custom": "prop_security_camera_01_packed",
+    "normal": "prop_security_camera_01_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_security_light": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_security_light_albedo",
+    "custom": "prop_security_light_packed",
+    "normal": "prop_security_light_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_security_light_bulb": {
+   "shader": "alleyEmissive",
+   "textures": {
+    "baseColor": "prop_security_light_bulb_albedo",
+    "custom": "neutral_packed"
+   },
+   "tint": [
+    1.0,
+    0.86,
+    0.66
+   ],
+   "params": [
+    2.2,
+    0.0,
+    0.0,
+    1.0
+   ]
+  },
+  "prop_utility_box_01": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_utility_box_01_albedo",
+    "custom": "prop_utility_box_01_packed",
+    "normal": "prop_utility_box_01_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
+  "prop_utility_box_02": {
+   "shader": "alleyLit",
+   "textures": {
+    "baseColor": "prop_utility_box_02_albedo",
+    "custom": "prop_utility_box_02_packed",
+    "normal": "prop_utility_box_02_normal"
+   },
+   "tint": [
+    1,
+    1,
+    1
+   ],
+   "params": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ]
+  },
   "frame_body": {
    "shader": "pbr",
    "textures": {
@@ -1310,6 +2439,29 @@
   },
   "occluder": {
    "shader": "occlusion"
+  },
+  "trim": {
+   "shader": "pbr",
+   "color": [
+    0.04,
+    0.041,
+    0.045
+   ],
+   "roughness": 0.36,
+   "metallic": 0.65
+  },
+  "reveal": {
+   "shader": "pbr",
+   "textures": {
+    "baseColor": "plaster_albedo"
+   },
+   "roughness": 0.92,
+   "metallic": 0.0,
+   "tint": [
+    1,
+    1,
+    1
+   ]
   },
   "contact_shadow": {
    "shader": "contactShadow",
@@ -1419,15 +2571,15 @@
   },
   "portal_aux": {
    "file": "meshes/portal_aux.pmsh",
-   "vertices": 60,
-   "triangles": 30,
-   "bytes": 2468
+   "vertices": 448,
+   "triangles": 208,
+   "bytes": 17124
   },
   "alley": {
    "file": "meshes/alley.pmsh",
-   "vertices": 31384,
-   "triangles": 24710,
-   "bytes": 1293600
+   "vertices": 292260,
+   "triangles": 379209,
+   "bytes": 16205718
   }
  },
  "lights": [

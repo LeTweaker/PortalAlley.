@@ -1,5 +1,8 @@
 # Validation record
 
+> **1.3.0:** current validation status, before/after renders and the new views (19-27) are in
+> [V1_3.md](V1_3.md#5-validation-actually-performed). The sections below describe the 1.0-1.2 baseline.
+
 Nothing below is a claim about the iPhone app running on a device. The code now **compiles in CI**
 (see below); no device test has been performed yet.
 

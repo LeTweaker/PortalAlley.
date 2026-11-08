@@ -33,6 +33,16 @@ VIEWS=(
   "16_car_sweep_t1.6|0.4,1.5,2.0|0,1.1,0|&t=1.6"
   "17_opening_leaves_20pct|0,1.5,2.2|0,1.1,0|&open=0.2"
   "18_left_far_corner|-1.6,1.5,2.4|0,1.1,0|"
+  # v1.3: surfaces, boundary styles, Resize/Rotate (default style: subtle cut edge)
+  "19_floor_portal|0,1.55,0.35|0,0,-1.7|&mode=floor"
+  "20_floor_oblique|1.0,1.5,0.6|0,0,-1.6|&mode=floor"
+  "21_ceiling_portal|0,1.35,0.2|0,2.6,-1.5|&mode=ceiling"
+  "22_ceiling_oblique|0.8,1.4,0.4|0,2.6,-1.4|&mode=ceiling"
+  "23_classic_frame|0,1.5,2.2|0,1.1,0|&style=classic"
+  "24_floor_resized_rotated|0,1.55,0.35|0,0,-1.7|&mode=floor&scale=0.7&rot=30"
+  "25_wall_resized_120|0,1.5,2.6|0,1.2,0|&scale=1.2"
+  "26_floor_overhead_close|0,1.3,-1.15|0,0,-1.75|&mode=floor"
+  "27_wall_no_bake_ios17|0,1.5,2.2|0,1.1,0|&noBake=1"
 )
 for v in "${VIEWS[@]}"; do
   IFS="|" read -r name eye look extra <<<"$v"

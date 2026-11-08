@@ -14,13 +14,16 @@ flip v before sampling; RealityKit's built-in PBR shader does this itself.
 
 Output format (.pmsh, little endian):
     char[4]  'PMSH'
-    u32      version (1)
+    u32      version (1, or 2 when any part carries baked lighting)
     u32      part count
     per part:
         u16 nameLen, utf8 name
         u16 matLen,  utf8 material id
         u32 vertexCount, u32 indexCount
-        f32[3*vc] positions, f32[3*vc] normals, f32[2*vc] uvs, u32[ic] indices
+        u32 flags                       (version 2 only; bit 0: uv1 present)
+        f32[3*vc] positions, f32[3*vc] normals, f32[2*vc] uvs,
+        f32[2*vc] uv1                   (if flagged: baked ao/visibility, see bake.py)
+        u32[ic] indices
 """
 from __future__ import annotations
 
@@ -44,11 +47,12 @@ def norm(a):
 
 
 class Part:
-    __slots__ = ("pos", "nrm", "uv", "idx", "count")
+    __slots__ = ("pos", "nrm", "uv", "idx", "count", "uv1")
 
     def __init__(self):
         self.pos, self.nrm, self.uv, self.idx = [], [], [], []
         self.count = 0
+        self.uv1 = None
 
     def add(self, P, N, UV, I):
         P = np.asarray(P, np.float64).reshape(-1, 3)
@@ -498,10 +502,11 @@ class MeshBuilder:
 
     def write(self, path, name_prefix=""):
         out = bytearray()
-        items = [(k, p.arrays()) for k, p in sorted(self.parts.items())]
-        items = [(k, a) for k, a in items if a is not None]
-        out += b"PMSH" + struct.pack("<II", 1, len(items))
-        for (chunk, mat), (P, N, UV, I) in items:
+        items = [(k, p.arrays(), p.uv1) for k, p in sorted(self.parts.items())]
+        items = [(k, a, u) for k, a, u in items if a is not None]
+        version = 2 if any(u is not None for _, _, u in items) else 1
+        out += b"PMSH" + struct.pack("<II", version, len(items))
+        for (chunk, mat), (P, N, UV, I), UV1 in items:
             # strip degenerate triangles (lathe poles etc.)
             tri = I.reshape(-1, 3)
             a, b, c = P[tri[:, 0]], P[tri[:, 1]], P[tri[:, 2]]
@@ -512,9 +517,14 @@ class MeshBuilder:
             out += struct.pack("<H", len(name)) + name
             out += struct.pack("<H", len(m)) + m
             out += struct.pack("<II", len(P), len(I))
+            if version == 2:
+                out += struct.pack("<I", 1 if UV1 is not None else 0)
             out += P.astype("<f4").tobytes()
             out += N.astype("<f4").tobytes()
             out += UV.astype("<f4").tobytes()
+            if UV1 is not None:
+                assert UV1.shape == (len(P), 2)
+                out += UV1.astype("<f4").tobytes()
             out += I.astype("<u4").tobytes()
         with open(path, "wb") as f:
             f.write(out)

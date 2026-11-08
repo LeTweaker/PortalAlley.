@@ -5,6 +5,7 @@ import Metal
 import PortalCore
 import RealityKit
 import UIKit
+import simd
 
 /// Rendering quality tiers.  Both keep the full geometry, depth, tracking and
 /// art direction; the low tier trims per-pixel lighting, transparent rain
@@ -189,8 +190,15 @@ final class PortalAssets {
                 }
                 // metallic scale carries the per-pixel light budget (see AlleyShaders.metal)
                 m.metallic = CustomMaterial.Metallic(floatLiteral: Float(tier.lightCount(manifest)) / 16)
+                // roughness scale carries the destination clip code (0 = wall portal, no clip)
+                m.roughness = CustomMaterial.Roughness(floatLiteral: 0)
                 if def.isTransparent {
                     m.blending = .transparent(opacity: .init(floatLiteral: 1.0))
+                }
+                if def.shader == "alleyLitCutout" {
+                    // alpha-tested, still depth-writing and sorted as opaque
+                    m.blending = .transparent(opacity: .init(floatLiteral: 1.0))
+                    m.opacityThreshold = 0.5
                 }
                 if def.cull == "none" {
                     m.faceCulling = .none
@@ -205,6 +213,22 @@ final class PortalAssets {
                 if def.isTransparent { u.blending = .transparent(opacity: .init(floatLiteral: 0.4)) }
                 return u
             }
+        }
+    }
+
+    /// Writes the destination clip code (PortalCore DestinationMode.clipCode)
+    /// into every custom material under `root` (the alley).
+    func applyDestinationClip(_ code: Float, under root: Entity) {
+        root.visit { e in
+            guard let me = e as? ModelEntity, var model = me.model else { return }
+            var changed = false
+            model.materials = model.materials.map { mat in
+                guard var c = mat as? CustomMaterial else { return mat }
+                c.roughness = CustomMaterial.Roughness(floatLiteral: code)
+                changed = true
+                return c
+            }
+            if changed { me.model = model }
         }
     }
 
@@ -226,23 +250,93 @@ final class PortalAssets {
     // MARK: meshes -> entities
 
     /// One ModelEntity holding several parts (one material per part).
+    /// Parts carrying baked lighting (uv1) are uploaded through LowLevelMesh on
+    /// iOS 18+, the only RealityKit mesh path that exposes a second UV set to
+    /// CustomMaterial shaders.  Without it (iOS 17) the shaders read uv1 = 0 and
+    /// fall back to the unbaked approximation.
     func modelEntity(_ parts: [MeshPart], name: String, materialOverride: RealityKit.Material? = nil) throws -> ModelEntity {
-        var descriptors: [MeshDescriptor] = []
         var mats: [RealityKit.Material] = []
-        for (i, p) in parts.enumerated() {
-            var d = MeshDescriptor(name: "\(name).\(p.material).\(i)")
-            d.positions = MeshBuffers.Positions(p.positions)
-            d.normals = MeshBuffers.Normals(p.normals)
-            d.textureCoordinates = MeshBuffers.TextureCoordinates(p.uvs)
-            d.primitives = .triangles(p.indices)
-            d.materials = .allFaces(UInt32(materialOverride == nil ? i : 0))
-            descriptors.append(d)
-            if materialOverride == nil { mats.append(try material(p.material)) }
+        if materialOverride == nil {
+            for p in parts { mats.append(try material(p.material)) }
         }
-        let mesh = try MeshResource.generate(from: descriptors)
+        let mesh: MeshResource
+        if #available(iOS 18.0, *), parts.contains(where: { $0.uv1 != nil }) {
+            mesh = try Self.bakedMesh(parts, perPartMaterials: materialOverride == nil)
+            bakedMeshCount += 1
+        } else {
+            var descriptors: [MeshDescriptor] = []
+            for (i, p) in parts.enumerated() {
+                var d = MeshDescriptor(name: "\(name).\(p.material).\(i)")
+                d.positions = MeshBuffers.Positions(p.positions)
+                d.normals = MeshBuffers.Normals(p.normals)
+                d.textureCoordinates = MeshBuffers.TextureCoordinates(p.uvs)
+                d.primitives = .triangles(p.indices)
+                d.materials = .allFaces(UInt32(materialOverride == nil ? i : 0))
+                descriptors.append(d)
+            }
+            mesh = try MeshResource.generate(from: descriptors)
+        }
         let e = ModelEntity(mesh: mesh, materials: materialOverride.map { [$0] } ?? mats)
         e.name = name
         return e
+    }
+
+    /// Number of entities built with baked lighting (developer diagnostics).
+    private(set) var bakedMeshCount = 0
+
+    private struct BakedVertex {
+        var position: SIMD3<Float>
+        var normal: SIMD3<Float>
+        var uv0: SIMD2<Float>
+        var uv1: SIMD2<Float>
+    }
+
+    @available(iOS 18.0, *)
+    private static func bakedMesh(_ parts: [MeshPart], perPartMaterials: Bool) throws -> MeshResource {
+        let vertexCount = parts.reduce(0) { $0 + $1.positions.count }
+        let indexCount = parts.reduce(0) { $0 + $1.indices.count }
+        var desc = LowLevelMesh.Descriptor()
+        desc.vertexCapacity = vertexCount
+        desc.indexCapacity = indexCount
+        desc.indexType = .uint32
+        desc.vertexAttributes = [
+            .init(semantic: .position, format: .float3, offset: MemoryLayout<BakedVertex>.offset(of: \.position)!),
+            .init(semantic: .normal, format: .float3, offset: MemoryLayout<BakedVertex>.offset(of: \.normal)!),
+            .init(semantic: .uv0, format: .float2, offset: MemoryLayout<BakedVertex>.offset(of: \.uv0)!),
+            .init(semantic: .uv1, format: .float2, offset: MemoryLayout<BakedVertex>.offset(of: \.uv1)!),
+        ]
+        desc.vertexLayouts = [.init(bufferIndex: 0, bufferStride: MemoryLayout<BakedVertex>.stride)]
+        let mesh = try LowLevelMesh(descriptor: desc)
+        mesh.withUnsafeMutableBytes(bufferIndex: 0) { raw in
+            let v = raw.bindMemory(to: BakedVertex.self)
+            var o = 0
+            for p in parts {
+                for i in 0..<p.positions.count {
+                    v[o + i] = BakedVertex(position: p.positions[i], normal: p.normals[i], uv0: p.uvs[i],
+                                           uv1: p.uv1?[i] ?? .zero)
+                }
+                o += p.positions.count
+            }
+        }
+        var lowParts: [LowLevelMesh.Part] = []
+        mesh.withUnsafeMutableIndices { raw in
+            let ix = raw.bindMemory(to: UInt32.self)
+            var vo: UInt32 = 0
+            var io = 0
+            for (k, p) in parts.enumerated() {
+                for (j, idx) in p.indices.enumerated() { ix[io + j] = idx + vo }
+                var lo = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
+                var hi = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
+                for q in p.positions { lo = simd_min(lo, q); hi = simd_max(hi, q) }
+                lowParts.append(LowLevelMesh.Part(indexOffset: io * MemoryLayout<UInt32>.size, indexCount: p.indices.count,
+                                                  topology: .triangle, materialIndex: perPartMaterials ? k : 0,
+                                                  bounds: BoundingBox(min: lo, max: hi)))
+                io += p.indices.count
+                vo += UInt32(p.positions.count)
+            }
+        }
+        mesh.parts.replaceAll(lowParts)
+        return try MeshResource(from: mesh)
     }
 }
 

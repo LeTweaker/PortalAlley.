@@ -11,6 +11,10 @@ public enum PlacementMethod: String, Equatable, Sendable {
     /// No usable wall: a freestanding doorway on the floor, ahead of the
     /// camera and facing it (manual fallback; nothing is behind it).
     case standing
+    /// v1.3: an opening in the floor (look down into the alley).
+    case floor
+    /// v1.3: an opening in the ceiling (look up into the alley).
+    case ceiling
 }
 
 /// One raycast result against a (detected or estimated) vertical surface.

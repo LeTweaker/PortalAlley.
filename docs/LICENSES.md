@@ -1,7 +1,8 @@
 # Asset licenses and attribution
 
-All runtime assets are generated from source in this repository by `Tools/assetgen/` and are
-original work. No third-party models, textures, photos, sound samples or fonts ship in the app.
+All runtime assets are generated from source in this repository by `Tools/assetgen/`.
+Since v1.3 the build also uses CC0 photographed surfaces and scanned props from Poly Haven
+(listed below); everything else is original work. No fonts or sound samples ship in the app.
 
 | Asset | Origin | License |
 |---|---|---|
@@ -18,16 +19,40 @@ All businesses are fictional: ほたる横丁, 喫茶ミナト, BAR 夜霧, 古�
 Build tooling (not shipped): Python 3, NumPy, SciPy, Pillow; XcodeGen; GitHub Actions.
 Sideloading (your machine, not part of this project): Sideloadly, iTunes/iCloud for Windows.
 
-# Photographic surface materials (v1.2)
+# Photographed surfaces and scanned props (v1.3)
 
-Surface materials: Poly Haven (https://polyhaven.com), CC0.
+Credit: **Poly Haven (https://polyhaven.com), CC0** - shown on the app's start card.
+License: https://polyhaven.com/license (CC0 1.0: no attribution required; we credit anyway).
 
-- Asphalt 02: https://polyhaven.com/a/asphalt_02
-- Concrete Floor 01: https://polyhaven.com/a/concrete_floor_01
-- Concrete Wall 003: https://polyhaven.com/a/concrete_wall_003
+| Asset | Type | Authors | Source |
+|---|---|---|---|
+| Exterior Aircon Unit | model | Monsta3D | https://polyhaven.com/a/exterior_aircon_unit |
+| Metal Trash Can | model | GurJas Studios | https://polyhaven.com/a/metal_trash_can |
+| Modular Airduct Circular 01 | model | Riley Queen | https://polyhaven.com/a/modular_airduct_circular_01 |
+| Mounted Fluorescent Lights | model | Ulan Cabanilla | https://polyhaven.com/a/mounted_fluorescent_lights |
+| Propane Tank | model | Slinc | https://polyhaven.com/a/propane_tank |
+| Rollershutter Window 03 | model | MP | https://polyhaven.com/a/rollershutter_window_03 |
+| Security Camera 01 | model | Alexander Otterbeck, Yann Kervran | https://polyhaven.com/a/security_camera_01 |
+| Security Light | model | Maximilian Schuster | https://polyhaven.com/a/security_light |
+| Utility Box 01 | model | James Ray Cock | https://polyhaven.com/a/utility_box_01 |
+| Utility Box 02 | model | James Ray Cock | https://polyhaven.com/a/utility_box_02 |
+| Asphalt 02 | texture | Rob Tuytel | https://polyhaven.com/a/asphalt_02 |
+| Black Painted Planks | texture | Dimitrios Savva | https://polyhaven.com/a/black_painted_planks |
+| Concrete Layers | texture | Amal Kumar | https://polyhaven.com/a/concrete_layers |
+| Concrete Tile Facade | texture | Charlotte Baglioni | https://polyhaven.com/a/concrete_tile_facade |
+| Concrete Wall 008 | texture | Charlotte Baglioni, Dario Barresi | https://polyhaven.com/a/concrete_wall_008 |
+| Corrugated Iron | texture | Dimitrios Savva, Jenelle van Heerden | https://polyhaven.com/a/corrugated_iron |
+| Garage Floor | texture | Jenelle van Heerden | https://polyhaven.com/a/garage_floor |
+| Mixed Brick Wall | texture | Dimitrios Savva | https://polyhaven.com/a/mixed_brick_wall |
+| Painted Concrete 02 | texture | Rob Tuytel | https://polyhaven.com/a/painted_concrete_02 |
+| Red Plaster Weathered | texture | Amal Kumar | https://polyhaven.com/a/red_plaster_weathered |
+| Rust Coarse 01 | texture | Dimitrios Savva, Rico Cilliers | https://polyhaven.com/a/rust_coarse_01 |
 
-The build-time importer identifies itself with a unique User-Agent and the app
-credits Poly Haven on its start card. `material-source-report` from the build
-contains the exact source URLs and checksums. Installed apps bundle the results
-and never call the API. Original asset license: https://polyhaven.com/license.
-
+How they are used
+- Downloaded once by `Tools/fetch_cc0_assets.py` (CI workflow `fetch-cc0-assets.yml`), MD5-verified
+  against Poly Haven's file metadata, committed under `Vendor/polyhaven/` with
+  `provenance.json` (URL, MD5, SHA-256, size, authors for every file).
+- Converted offline by `Tools/assetgen/photo.py` (surfaces: resized, luminance-normalised, ARM
+  repacked) and `Tools/assetgen/props.py` (glTF -> mesh pack, textures resized to 512 px).
+  The app bundle contains only the converted results; the app never contacts Poly Haven.
+- Nothing was purchased; no paid or attribution-restricted asset is used.

@@ -68,29 +68,65 @@ static float3 photographic_normal(thread realitykit::surface_parameters &params,
 // Writes go straight to params inside each entry point (never through a copy).
 #define EMIT(c) params.surface().set_emissive_color(half3(c))
 
+// Destination mode (wall / floor / ceiling portal) rides in the roughness
+// scale, otherwise unused by these unlit shaders (PortalCore DestinationMode).
+static float clip_code(thread realitykit::surface_parameters &params) {
+    return float(params.material_constants().roughness_scale());
+}
+// Discard alley geometry on the room side of a horizontal aperture.  Used at
+// the top of every destination entry point.
+#define CLIP_OR_DISCARD(s) \
+    float clipc = clip_code(params); \
+    if (a_clip_keep(clipc, (s).p.y) < 0.5) { discard_fragment(); } \
+    float3 fogRef = a_fog_ref(clipc)
+
 // ------------------------------------------------------------------ alley
+
+// prm.x wet, prm.y spec, prm.z UV multiplier (0 = 1: scans at photographed size), prm.w exposure
+static float3 alley_lit_color(thread realitykit::surface_parameters &params, PortalSpace s, float3 fogRef, thread float &alpha)
+{
+    float4 prm = params.uniforms().custom_parameter();
+    float2 uv = usd_uv(params.geometry().uv0()) * (prm.z > 0.0 ? prm.z : 1.0);
+    auto tex = params.textures();
+    float3 tint = float3(params.material_constants().base_color_tint());
+    float4 base = float4(tex.base_color().sample(kRepeat, uv));
+    alpha = base.a;
+    float3 alb = base.rgb * tint;
+    float3 pk = float3(tex.custom().sample(kRepeat, uv).rgb);
+    float t = params.uniforms().time();
+    // geometry is two-sided in a few places (awnings, noren): face the viewer
+    float3 n = dot(s.n, s.v) < 0.0 ? -s.n : s.n;
+    n = photographic_normal(params, s.p, n, uv);
+    return shade_lit(s.p, n, s.v, alb, pk, prm, t, light_count(params), float2(params.geometry().uv1()), fogRef);
+}
 
 [[visible]]
 void alleyLit(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
-    float2 uv = usd_uv(params.geometry().uv0());
-    auto tex = params.textures();
-    float3 tint = float3(params.material_constants().base_color_tint());
-    float3 alb = float3(tex.base_color().sample(kRepeat, uv).rgb) * tint;
-    float3 pk = float3(tex.custom().sample(kRepeat, uv).rgb);
-    float4 prm = params.uniforms().custom_parameter();
-    float t = params.uniforms().time();
-    // geometry is two-sided in a few places (awnings, noren): face the viewer
-    float3 n = dot(s.n, s.v) < 0.0 ? -s.n : s.n;
-    n = photographic_normal(params, s.p, n, uv);
-    EMIT(shade_lit(s.p, n, s.v, alb, pk, prm, t, light_count(params)));
+    CLIP_OR_DISCARD(s);
+    float a;
+    EMIT(alley_lit_color(params, s, fogRef, a));
+}
+
+// Alpha-masked scans (AC grilles): opacity from base colour alpha; the
+// material sets opacityThreshold so masked texels are discarded, not blended.
+[[visible]]
+void alleyLitCutout(realitykit::surface_parameters params)
+{
+    PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
+    float a;
+    float3 c = alley_lit_color(params, s, fogRef, a);
+    EMIT(c);
+    params.surface().set_opacity(half(a));
 }
 
 [[visible]]
 void alleyGround(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
     float2 uv = usd_uv(params.geometry().uv0());
     auto tex = params.textures();
     float3 tint = float3(params.material_constants().base_color_tint());
@@ -101,13 +137,14 @@ void alleyGround(realitykit::surface_parameters params)
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float3 detail = photographic_normal(params, s.p, float3(0, 1, 0), uv);
-    EMIT(shade_ground_detail(s.p, s.v, alb, pk, pud, prm, t, light_count(params), detail));
+    EMIT(shade_ground_detail(s.p, s.v, alb, pk, pud, prm, t, light_count(params), detail, float2(params.geometry().uv1()), fogRef));
 }
 
 [[visible]]
 void alleyDecal(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
     float2 uv = usd_uv(params.geometry().uv0());
     auto tex = params.textures();
     float4 paint = float4(tex.base_color().sample(kClamp, uv));
@@ -117,7 +154,7 @@ void alleyDecal(realitykit::surface_parameters params)
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float4 gp = float4(prm.x, prm.y, 0.6, prm.w);
-    float3 c = shade_ground(s.p, s.v, paint.rgb * tint, float3(0.35, 1.0, 0.6), pud * 0.6, gp, t, light_count(params));
+    float3 c = shade_ground(s.p, s.v, paint.rgb * tint, float3(0.35, 1.0, 0.6), pud * 0.6, gp, t, light_count(params), fogRef);
     EMIT(c);
     params.surface().set_opacity(half(clamp(paint.a * prm.z, 0.0, 1.0)));
 }
@@ -126,6 +163,7 @@ void alleyDecal(realitykit::surface_parameters params)
 void alleyEmissive(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float2 uv = params.geometry().uv0();
@@ -134,24 +172,28 @@ void alleyEmissive(realitykit::surface_parameters params)
     auto tex = params.textures();
     float3 tint = float3(params.material_constants().base_color_tint());
     float3 e = float3(tex.base_color().sample(kClamp, uv).rgb) * tint;
-    EMIT(shade_emissive(s.p, s.n, s.v, e, prm, t));
+    EMIT(shade_emissive(s.p, s.n, s.v, e, prm, t, fogRef));
 }
 
 [[visible]]
 void alleyWindow(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float2 uv = params.geometry().uv0() + window_parallax(s.n, s.v, prm.y);
     auto tex = params.textures();
     float3 interior = float3(tex.base_color().sample(kClamp, usd_uv(uv)).rgb);
-    EMIT(shade_window(s.p, s.n, s.v, interior, prm, t, light_count(params)));
+    EMIT(shade_window(s.p, s.n, s.v, interior, prm, t, light_count(params), fogRef));
 }
 
 [[visible]]
 void alleySky(realitykit::surface_parameters params)
 {
+    PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
+    (void)fogRef;
     float2 uv = usd_uv(params.geometry().uv0());
     auto tex = params.textures();
     float3 c = float3(tex.base_color().sample(kClamp, uv).rgb);
@@ -162,13 +204,14 @@ void alleySky(realitykit::surface_parameters params)
 void alleyRain(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float2 uv = params.geometry().uv0();
     uv.y = uv.y + t * prm.x / 6.0 + prm.y;
     auto tex = params.textures();
     float streak = float(tex.base_color().sample(kRepeat, usd_uv(uv)).r);
-    float4 c = shade_rain(s.p, streak, prm, t, light_count(params));
+    float4 c = shade_rain(s.p, streak, prm, t, light_count(params), fogRef);
     EMIT(c.rgb);
     params.surface().set_opacity(half(c.a));
 }
@@ -177,6 +220,7 @@ void alleyRain(realitykit::surface_parameters params)
 void alleySteam(realitykit::surface_parameters params)
 {
     PortalSpace s = portal_space(params);
+    CLIP_OR_DISCARD(s);
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float2 uv = params.geometry().uv0();
@@ -184,7 +228,7 @@ void alleySteam(realitykit::surface_parameters params)
     uv.x += sin(t * 0.3 + uv.y * 2.0) * 0.05;
     auto tex = params.textures();
     float d = float(tex.base_color().sample(kRepeat, usd_uv(uv)).r);
-    float4 c = shade_steam(s.p, d, prm, t, light_count(params));
+    float4 c = shade_steam(s.p, d, prm, t, light_count(params), fogRef);
     EMIT(c.rgb);
     params.surface().set_opacity(half(c.a));
 }

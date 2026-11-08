@@ -27,8 +27,11 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 
 import alley  # noqa: E402
 import audio  # noqa: E402
+import bake  # noqa: E402
 import frame  # noqa: E402
 import interiors  # noqa: E402
+import photo  # noqa: E402
+import props  # noqa: E402
 import signs  # noqa: E402
 import texkit as tk  # noqa: E402
 from meshkit import MeshBuilder  # noqa: E402
@@ -42,6 +45,9 @@ for d in (TEX, MESH, AUD, GEN_PREVIEW):
     os.makedirs(d, exist_ok=True)
 
 EXPOSURE = 1.0
+PHOTO_STATS = {}
+PROP_STATS = {}
+BAKE_STATS = {}
 
 # --------------------------------------------------------------------------
 # Textures: name -> (semantic, generator).  semantic: color (sRGB) | raw (linear)
@@ -54,10 +60,24 @@ def build_textures():
         img.save(path, optimize=True)
         out[name] = dict(file=f"textures/{name}.png", semantic=semantic, size=list(img.size))
 
+    def save_jpg(name, img, semantic):
+        path = os.path.join(TEX, f"{name}.jpg")
+        img.convert("RGB").save(path, quality=90, optimize=True, subsampling=0 if semantic == "raw" else 2)
+        out[name] = dict(file=f"textures/{name}.jpg", semantic=semantic, size=list(img.size))
+
+    # stale outputs from earlier pipelines (procedural / v1.2 CI import) must not ship
+    for f in os.listdir(TEX):
+        os.remove(os.path.join(TEX, f))
+
+    # photographed CC0 scans (Vendor/polyhaven): walls, shutters, wood, ground
+    PHOTO_STATS.update(photo.build(save, save_jpg))
+    # scanned CC0 props: their own albedo/packed/normal sets
+    PROP_STATS.update(props.build_textures(save, save_jpg))
+
+    # procedural where no scan fits (small painted metal parts, awning canvas,
+    # gutter grates, manhole lid)
     pairs = [
-        ("tile", tk.tile_wall), ("concrete", tk.concrete), ("plaster", tk.plaster),
-        ("metal", tk.metal_panel), ("shutter", tk.shutter), ("wood", tk.wood),
-        ("canvas", tk.canvas_stripe), ("asphalt", tk.asphalt), ("grate", tk.grate),
+        ("metal", tk.metal_panel), ("canvas", tk.canvas_stripe), ("grate", tk.grate),
         ("manhole", tk.manhole),
     ]
     for name, fn in pairs:
@@ -96,9 +116,23 @@ def build_textures():
 # --------------------------------------------------------------------------
 # Materials
 # --------------------------------------------------------------------------
-def lit(albedo, packed, tint, wet=0.35, spec=0.6):
-    return dict(shader="alleyLit", textures=dict(baseColor=albedo, custom=packed),
-                tint=list(tint), params=[wet, spec, 0.0, EXPOSURE])
+def lit(albedo, packed, tint, wet=0.35, spec=0.6, normal=None, uvmul=0.0):
+    t = dict(baseColor=albedo, custom=packed)
+    if normal:
+        t["normal"] = normal
+    # params.z: UV multiplier (0 = 1) so scans show at photographed size
+    return dict(shader="alleyLit", textures=t, tint=list(tint), params=[wet, spec, float(uvmul), EXPOSURE])
+
+
+def plit(fam, tint, wet=0.35, spec=0.6, authored=None, uvmul=None):
+    """Lit material from a photographed family."""
+    m = uvmul if uvmul is not None else (photo.uv_mul(fam, authored) if authored else 1.0)
+    return lit(f"{fam}_albedo", f"{fam}_packed", tint, wet, spec, normal=f"{fam}_normal", uvmul=m)
+
+
+def ground(fam, tint, prm, aux="puddles"):
+    return dict(shader="alleyGround", textures=dict(baseColor=f"{fam}_albedo", custom=f"{fam}_packed", emissiveColor=aux,
+                                                     normal=f"{fam}_normal"), tint=list(tint), params=prm)
 
 
 def emissive(tex, gain, flicker=0, scroll=0.0, tint=(1, 1, 1)):
@@ -108,31 +142,33 @@ def emissive(tex, gain, flicker=0, scroll=0.0, tint=(1, 1, 1)):
 
 def materials():
     M = {}
-    M["tile_beige"] = lit("tile_albedo", "tile_packed", (0.92, 0.84, 0.70), wet=0.45, spec=0.9)
-    M["tile_grey"] = lit("tile_albedo", "tile_packed", (0.60, 0.65, 0.70), wet=0.45, spec=0.9)
-    M["concrete"] = lit("concrete_albedo", "concrete_packed", (1.0, 1.0, 1.0), wet=0.4, spec=0.4)
-    M["concrete_dark"] = lit("concrete_albedo", "concrete_packed", (0.55, 0.55, 0.58), wet=0.4, spec=0.4)
-    M["plaster_cream"] = lit("plaster_albedo", "plaster_packed", (0.95, 0.87, 0.72), wet=0.3, spec=0.3)
-    M["plaster_green"] = lit("plaster_albedo", "plaster_packed", (0.66, 0.82, 0.74), wet=0.3, spec=0.3)
-    M["plaster_rust"] = lit("plaster_albedo", "plaster_packed", (0.52, 0.27, 0.19), wet=0.3, spec=0.3)
+    # photographed facades; tints are per-building paint on one scan
+    M["tile_beige"] = plit("tile", (1.00, 0.86, 0.66), wet=0.45, spec=0.9, authored=2.0)
+    M["tile_grey"] = plit("tile", (0.62, 0.66, 0.70), wet=0.45, spec=0.9, authored=2.0)
+    M["concrete"] = plit("concrete", (1.0, 1.0, 1.0), wet=0.4, spec=0.4, authored=3.0)
+    M["concrete_dark"] = plit("concrete2", (0.72, 0.72, 0.75), wet=0.4, spec=0.4, authored=3.0)
+    M["plaster_cream"] = plit("plaster", (1.00, 0.90, 0.74), wet=0.3, spec=0.3, authored=2.0)
+    M["plaster_green"] = plit("plaster", (0.70, 0.86, 0.78), wet=0.3, spec=0.3, authored=2.0)
+    M["plaster_rust"] = plit("redplaster", (1.0, 1.0, 1.0), wet=0.3, spec=0.3, authored=2.0)
+    M["brick"] = plit("brick", (0.9, 0.9, 0.9), wet=0.45, spec=0.4, authored=2.0)
     M["metal_grey"] = lit("metal_albedo", "metal_packed", (0.55, 0.57, 0.60), wet=0.5, spec=1.0)
     M["metal_dark"] = lit("metal_albedo", "metal_packed", (0.16, 0.16, 0.18), wet=0.5, spec=1.0)
     M["metal_white"] = lit("metal_albedo", "metal_packed", (0.90, 0.90, 0.88), wet=0.5, spec=1.0)
-    M["shutter"] = lit("shutter_albedo", "shutter_packed", (0.72, 0.75, 0.79), wet=0.5, spec=0.9)
-    M["wood_dark"] = lit("wood_albedo", "wood_packed", (0.85, 0.75, 0.65), wet=0.3, spec=0.5)
+    M["rust_metal"] = plit("rust", (0.8, 0.8, 0.8), wet=0.5, spec=0.6, uvmul=1.0)
+    # roller shutters: slats ~7.7 cm (scan rotated so ridges run horizontally)
+    M["shutter"] = plit("shutter", (0.80, 0.83, 0.86), wet=0.5, spec=0.9, uvmul=1.0)
+    M["corrugated"] = plit("corrugated", (0.70, 0.72, 0.72), wet=0.6, spec=0.9, uvmul=1.4)
+    M["wood_dark"] = plit("wood", (1.0, 0.72, 0.52), wet=0.3, spec=0.5, uvmul=1.0)
     M["canvas"] = lit("canvas_albedo", "canvas_packed", (1, 1, 1), wet=0.6, spec=0.6)
     M["crate_blue"] = lit("metal_albedo", "metal_packed", (0.08, 0.28, 0.75), wet=0.6, spec=1.0)
     M["crate_yellow"] = lit("metal_albedo", "metal_packed", (0.95, 0.72, 0.08), wet=0.6, spec=1.0)
-    M["rubber_black"] = lit("concrete_albedo", "concrete_packed", (0.10, 0.10, 0.10), wet=0.2, spec=0.3)
+    M["rubber_black"] = lit("concrete2_albedo", "concrete2_packed", (0.10, 0.10, 0.10), wet=0.2, spec=0.3)
     M["cable"] = lit("metal_albedo", "metal_packed", (0.06, 0.06, 0.07), wet=0.5, spec=0.8)
     M["cone"] = lit("metal_albedo", "metal_packed", (1.0, 0.32, 0.06), wet=0.6, spec=1.0)
     M["pole_sleeve"] = lit("signs", "neutral_packed", (0.8, 0.8, 0.8), wet=0.5, spec=0.8)
-    M["concrete_ground"] = dict(shader="alleyGround", textures=dict(baseColor="concrete_albedo", custom="concrete_packed", emissiveColor="puddles"),
-                                tint=[0.80, 0.80, 0.82], params=[0.75, 1.0, 0.6, EXPOSURE])
-    M["concrete_stoop"] = dict(shader="alleyGround", textures=dict(baseColor="concrete_albedo", custom="concrete_packed", emissiveColor="black"),
-                               tint=[0.62, 0.62, 0.64], params=[0.45, 0.45, 0.2, EXPOSURE])
-    M["asphalt"] = dict(shader="alleyGround", textures=dict(baseColor="asphalt_albedo", custom="asphalt_packed", emissiveColor="puddles"),
-                        tint=[1, 1, 1], params=[1.0, 1.0, 1.0, EXPOSURE])
+    M["concrete_ground"] = ground("pavement", (0.80, 0.80, 0.82), [0.75, 1.0, 0.6, EXPOSURE])
+    M["concrete_stoop"] = ground("pavement", (0.62, 0.62, 0.64), [0.45, 0.45, 0.2, EXPOSURE], aux="black")
+    M["asphalt"] = ground("asphalt", (1, 1, 1), [1.0, 1.0, 1.0, EXPOSURE])
     M["grate"] = dict(shader="alleyGround", textures=dict(baseColor="grate_albedo", custom="grate_packed", emissiveColor="puddles"),
                       tint=[1, 1, 1], params=[0.9, 1.0, 0.0, EXPOSURE])
     M["manhole"] = dict(shader="alleyGround", textures=dict(baseColor="manhole_albedo", custom="manhole_packed", emissiveColor="puddles"),
@@ -162,6 +198,8 @@ def materials():
     M["steam"] = dict(shader="alleySteam", textures=dict(baseColor="steam", custom="neutral_packed"), tint=[1, 0.95, 0.9],
                       params=[0.18, 0.32, 0, EXPOSURE], blend="transparent", cull="none")
 
+    M.update(props.materials(lit, EXPOSURE))
+
     # ---- portal / room side
     M["frame_body"] = dict(shader="pbr", textures=dict(baseColor="frame_brushed_albedo", roughness="frame_brushed_rough"), metallic=0.85, tint=[1, 1, 1])
     M["frame_trim"] = dict(shader="pbr", textures=dict(baseColor="frame_trim_albedo", roughness="frame_trim_rough"), metallic=1.0, tint=[1, 1, 1])
@@ -171,6 +209,9 @@ def materials():
     M["frame_light"] = dict(shader="portalEdge", textures=dict(baseColor="white", custom="neutral_packed"), tint=[0.30, 0.86, 1.0], params=[0.6, 0.0, 0.0, 0.0])
     M["frame_led"] = dict(shader="portalEdge", textures=dict(baseColor="white", custom="neutral_packed"), tint=[1.0, 0.55, 0.12], params=[0.8, 0.0, 0.0, 0.0])
     M["occluder"] = dict(shader="occlusion")
+    # v1.3 subtle boundary: lit by the room (RealityKit PBR + environment probe)
+    M["trim"] = dict(shader="pbr", color=[0.040, 0.041, 0.045], roughness=0.36, metallic=0.65)
+    M["reveal"] = dict(shader="pbr", textures=dict(baseColor="plaster_albedo"), roughness=0.92, metallic=0.0, tint=[1, 1, 1])
     M["contact_shadow"] = dict(shader="contactShadow", textures=dict(baseColor="contact_shadow", custom="neutral_packed"), tint=[0, 0, 0],
                                params=[0.75, 0, 0, 0], blend="transparent")
     M["spill"] = dict(shader="floorSpill", textures=dict(baseColor="spill", custom="neutral_packed"), tint=[1, 1, 1],
@@ -231,13 +272,17 @@ def main():
     fr = frame.build_frame()
     aux = MeshBuilder()
     for b in (frame.build_occluders(), frame.build_aperture_leaf(), frame.build_contact_shadow(), frame.build_spill(),
-              frame.build_veil(), frame.build_seam(), frame.build_preview_footprint()):
+              frame.build_veil(), frame.build_seam(), frame.build_preview_footprint(), frame.build_subtle()):
         aux.merge(b)
     world = alley.build(A, I)
+    if "--no-bake" not in sys.argv:
+        BAKE_STATS.update(bake.bake(world, materials(), light_table()))
     meshes = {}
     for name, mb in (("frame", fr), ("portal_aux", aux), ("alley", world)):
         rep = mb.check()
-        bad = {k: v for k, v in rep.items() if v[1] < 0.999}
+        # authored geometry must be exact; scanned props carry a few smoothing
+        # seams where interpolated normals disagree with face winding
+        bad = {k: v for k, v in rep.items() if v[1] < (0.97 if k[1].startswith("prop_") else 0.999)}
         assert not bad, f"winding/normal mismatch in {name}: {bad}"
         size = mb.write(os.path.join(MESH, f"{name}.pmsh"))
         v, t = mb.stats()
@@ -271,6 +316,8 @@ def main():
     manifest = dict(
         version=1,
         generatedBy="Tools/assetgen/build.py",
+        sources=dict(photographedSurfaces=PHOTO_STATS, scannedProps=PROP_STATS, bakedLighting=BAKE_STATS,
+                     license="CC0 (Poly Haven); see Vendor/polyhaven/provenance.json"),
         dimensions=frame.DIMENSIONS,
         alley=dict(groundY=alley.G, leftFacadeX=alley.XL, rightFacadeX=alley.XR, junctionZ=alley.Z_END),
         textures=tex,

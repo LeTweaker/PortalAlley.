@@ -1,0 +1,505 @@
+{
+ "textures": {
+  "asphalt_02": {
+   "name": "Asphalt 02",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    3000.000238418579,
+    3000
+   ]
+  },
+  "concrete_floor_01": {
+   "name": "Concrete Floor 01",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    2000,
+    2000
+   ]
+  },
+  "concrete_wall_003": {
+   "name": "Concrete Wall 003",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    3000,
+    3000.000238418579
+   ]
+  },
+  "concrete_tile_facade": {
+   "name": "Concrete Tile Facade",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    2089.9999141693115,
+    2089.9999141693115
+   ]
+  },
+  "red_plaster_weathered": {
+   "name": "Red Plaster Weathered",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    2000,
+    2000
+   ]
+  },
+  "beige_wall_001": {
+   "name": "Beige Wall 001",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    3000,
+    3000.000238418579
+   ]
+  },
+  "concrete_wall_008": {
+   "name": "Concrete Wall 008",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    2710.0000381469727,
+    2710.0000381469727
+   ]
+  },
+  "concrete_layers": {
+   "name": "Concrete Layers",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1549.9999523162842,
+    1549.9999523162842
+   ]
+  },
+  "precast_concrete_wall": {
+   "name": "Precast Concrete Wall",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1589.999794960022,
+    1589.999794960022
+   ]
+  },
+  "painted_concrete_02": {
+   "name": "Painted Concrete 02",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    4000,
+    4000
+   ]
+  },
+  "rusty_metal_03": {
+   "name": "Rusty Metal 03",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1350.0001430511475,
+    1350.0001430511475
+   ]
+  },
+  "rust_coarse_01": {
+   "name": "Rust Coarse 01",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    2199.9998092651367,
+    2200.000286102295
+   ]
+  },
+  "garage_floor": {
+   "name": "Garage Floor",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1886.4402770996094,
+    1886.4402770996094
+   ]
+  },
+  "mixed_brick_wall": {
+   "name": "Mixed Brick Wall",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1700.0000476837158,
+    1700.0000476837158
+   ]
+  },
+  "corrugated_iron": {
+   "name": "Corrugated Iron",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1120.0000047683716,
+    1120.0000047683716
+   ]
+  },
+  "black_painted_planks": {
+   "name": "Black Painted Planks",
+   "maps": [
+    "ao",
+    "arm",
+    "diff",
+    "nor_gl",
+    "rough"
+   ],
+   "dimensions_mm": [
+    1599.9999046325684,
+    1599.9999046325684
+   ]
+  }
+ },
+ "models": {
+  "exterior_aircon_unit": {
+   "name": "Exterior Aircon Unit",
+   "polycount": 18986,
+   "dimensions_mm": [
+    1799.971342086792,
+    374.15920197963715,
+    927.8970956802368
+   ],
+   "gltf": "exterior_aircon_unit_1k.gltf",
+   "includes": [
+    "exterior_aircon_unit.bin",
+    "textures/exterior_aircon_unit_01_arm_1k.jpg",
+    "textures/exterior_aircon_unit_01_diff_1k.jpg",
+    "textures/exterior_aircon_unit_01_nor_gl_1k.jpg",
+    "textures/exterior_aircon_unit_01_opacity_1k.jpg",
+    "textures/exterior_aircon_unit_02_arm_1k.jpg",
+    "textures/exterior_aircon_unit_02_nor_gl_1k.jpg",
+    "textures/exterior_aircon_unit_rusted_01_arm_1k.jpg",
+    "textures/exterior_aircon_unit_rusted_01_diff_1k.jpg",
+    "textures/exterior_aircon_unit_rusted_01_nor_gl_1k.jpg",
+    "textures/exterior_aircon_unit_rusted_02_arm_1k.jpg",
+    "textures/exterior_aircon_unit_rusted_02_nor_gl_1k.jpg",
+    "textures/exterior_aircon_unit_rusted_02_opacity_1k.jpg"
+   ]
+  },
+  "utility_box_01": {
+   "name": "Utility Box 01",
+   "polycount": 4404,
+   "dimensions_mm": [
+    520.0002193450928,
+    431.999996304512,
+    1120.3334331512451
+   ],
+   "gltf": "utility_box_01_1k.gltf",
+   "includes": [
+    "textures/utility_box_01_arm_1k.jpg",
+    "textures/utility_box_01_diff_1k.jpg",
+    "textures/utility_box_01_nor_gl_1k.jpg",
+    "utility_box_01.bin"
+   ]
+  },
+  "utility_box_02": {
+   "name": "Utility Box 02",
+   "polycount": 6268,
+   "dimensions_mm": [
+    920.0001955032349,
+    431.999996304512,
+    1120.3334331512451
+   ],
+   "gltf": "utility_box_02_1k.gltf",
+   "includes": [
+    "textures/utility_box_02_arm_1k.jpg",
+    "textures/utility_box_02_diff_1k.jpg",
+    "textures/utility_box_02_nor_gl_1k.jpg",
+    "utility_box_02.bin"
+   ]
+  },
+  "metal_trash_can": {
+   "name": "Metal Trash Can",
+   "polycount": 13960,
+   "dimensions_mm": [
+    1846.9352722167969,
+    556.2898814678192,
+    906.1697272554738
+   ],
+   "gltf": "metal_trash_can_1k.gltf",
+   "includes": [
+    "metal_trash_can.bin",
+    "textures/metal_trash_can_arm_1k.jpg",
+    "textures/metal_trash_can_diff_1k.jpg",
+    "textures/metal_trash_can_nor_gl_1k.jpg",
+    "textures/metal_trash_can_rust_arm_1k.jpg",
+    "textures/metal_trash_can_rust_diff_1k.jpg",
+    "textures/metal_trash_can_rust_nor_gl_1k.jpg"
+   ]
+  },
+  "propane_tank": {
+   "name": "Propane Tank",
+   "polycount": 5238,
+   "dimensions_mm": [
+    337.3616933822632,
+    337.3616933822632,
+    553.7950303405523
+   ],
+   "gltf": "propane_tank_1k.gltf",
+   "includes": [
+    "propane_tank.bin",
+    "textures/propane_tank_arm_1k.jpg",
+    "textures/propane_tank_diff_1k.jpg",
+    "textures/propane_tank_nor_gl_1k.jpg"
+   ]
+  },
+  "security_light": {
+   "name": "Security Light",
+   "polycount": 4668,
+   "dimensions_mm": [
+    323.14473390579224,
+    417.2230511903763,
+    530.9766530990601
+   ],
+   "gltf": "security_light_1k.gltf",
+   "includes": [
+    "security_light.bin",
+    "textures/security_light_arm_1k.jpg",
+    "textures/security_light_diff_1k.jpg",
+    "textures/security_light_nor_gl_1k.jpg"
+   ]
+  },
+  "mounted_fluorescent_lights": {
+   "name": "Mounted Fluorescent Lights",
+   "polycount": 17820,
+   "dimensions_mm": [
+    912.1809005737305,
+    645.4365849494934,
+    35.35318718786584
+   ],
+   "gltf": "mounted_fluorescent_lights_1k.gltf",
+   "includes": [
+    "mounted_fluorescent_lights.bin",
+    "textures/mounted_fluorescent_lights_arm_1k.jpg",
+    "textures/mounted_fluorescent_lights_diff_1k.jpg",
+    "textures/mounted_fluorescent_lights_emission_1k.jpg",
+    "textures/mounted_fluorescent_lights_nor_gl_1k.jpg"
+   ]
+  },
+  "rollershutter_window_03": {
+   "name": "Rollershutter Window 03",
+   "polycount": 1120,
+   "dimensions_mm": [
+    2976.2515127658844,
+    153.08569185435772,
+    1546.278931200959
+   ],
+   "gltf": "rollershutter_window_03_1k.gltf",
+   "includes": [
+    "rollershutter_window_03.bin",
+    "textures/rollershutter_window_03_arm_1k.jpg",
+    "textures/rollershutter_window_03_diff_1k.jpg",
+    "textures/rollershutter_window_03_graffiti_diff_1k.jpg",
+    "textures/rollershutter_window_03_nor_gl_1k.jpg"
+   ]
+  },
+  "modular_airduct_circular_01": {
+   "name": "Modular Airduct Circular 01",
+   "polycount": 14280,
+   "dimensions_mm": [
+    4170.705795288086,
+    1463.481143116951,
+    1324.144184589386
+   ],
+   "gltf": "modular_airduct_circular_01_1k.gltf",
+   "includes": [
+    "modular_airduct_circular_01.bin",
+    "textures/modular_airduct_circular_01_arm_1k.jpg",
+    "textures/modular_airduct_circular_01_diff_1k.jpg",
+    "textures/modular_airduct_circular_01_nor_gl_1k.jpg"
+   ]
+  },
+  "security_camera_01": {
+   "name": "Security Camera 01",
+   "polycount": 13571,
+   "dimensions_mm": [
+    169.5517897605896,
+    553.6733567714691,
+    286.04651242494583
+   ],
+   "gltf": "security_camera_01_1k.gltf",
+   "includes": [
+    "security_camera_01.bin",
+    "textures/security_camera_01_arm_1k.jpg",
+    "textures/security_camera_01_diff_1k.jpg",
+    "textures/security_camera_01_nor_gl_1k.jpg"
+   ]
+  }
+ },
+ "missing": [],
+ "discovered": {
+  "texture:corrugated": [
+   "corrugated_iron",
+   "corrugated_iron_02",
+   "corrugated_iron_03",
+   "rusty_corrugated_iron",
+   "worn_corrugated_iron"
+  ],
+  "texture:planks": [
+   "black_painted_planks",
+   "blue_painted_planks",
+   "brown_planks_03",
+   "brown_planks_04",
+   "brown_planks_05",
+   "brown_planks_07",
+   "brown_planks_08",
+   "brown_planks_09",
+   "dark_planks",
+   "dark_wooden_planks",
+   "distressed_painted_planks",
+   "embedded_plank_flooring",
+   "green_rough_planks",
+   "hinoki_planks",
+   "japanese_cedar_planks",
+   "oak_wood_planks",
+   "old_planks_02",
+   "plank_flooring",
+   "plank_flooring_02",
+   "plank_flooring_03",
+   "plank_flooring_04",
+   "planks_brown_10",
+   "raw_plank_wall",
+   "roof_planks",
+   "stair_planks",
+   "weathered_brown_planks",
+   "weathered_plank_siding",
+   "weathered_planks",
+   "white_planks_clean",
+   "wood_plank_wall"
+  ],
+  "models": [
+   "GothicCabinet_01 | Gothic Cabinet 01",
+   "Lantern_01 | Lantern 01",
+   "WetFloorSign_01 | Wet Floor Sign 01",
+   "binder_notebook | Binder Notebook",
+   "binoculars | Binoculars",
+   "bleach_bottle | Bleach Bottle",
+   "brass_diya_lantern | Brass Diya Lantern",
+   "brass_pot_01 | Brass Pot 01",
+   "brass_pot_02 | Brass Pot 02",
+   "ceramic_pot | Ceramic Pot",
+   "chinese_cabinet | Chinese Cabinet",
+   "combination_wrench | Combination Wrench",
+   "concrete_road_barrier | Concrete Road Barrier",
+   "concrete_road_barrier_02 | Concrete Road Barrier 02",
+   "crystalline_iceplant | Crystalline Iceplant",
+   "drawer_cabinet | Drawer Cabinet",
+   "industrial_pipe_lamp | Industrial Pipe Lamp",
+   "lantern_chandelier_01 | Lantern Chandelier 01",
+   "modern_wooden_cabinet | Modern Wooden Cabinet",
+   "modular_electric_cables | Modular Electric Cables",
+   "modular_industrial_pipes_01 | Modular Industrial Pipes 01",
+   "modular_pipes | Modular Pipes",
+   "modular_pipes_plastic_01 | Modular Pipes Plastic 01",
+   "multi_cleaner_bottle | Multi Cleaner Bottle",
+   "nettle_plant | Nettle Plant",
+   "old_military_crate | Old Military Crate",
+   "painted_wooden_cabinet | Painted Wooden Cabinet",
+   "painted_wooden_cabinet_02 | Painted Wooden Cabinet 02",
+   "periwinkle_plant | Periwinkle Plant",
+   "pipe_wrench | Pipe Wrench",
+   "planter_box_01 | Planter Box 01",
+   "planter_box_02 | Planter Box 02",
+   "planter_box_03 | Planter Box 03",
+   "planter_pot_clay | Planter Pot Clay",
+   "plastic_bottle_gallon | Plastic Bottle Gallon",
+   "plastic_crate_01 | Plastic Crate 01",
+   "plastic_crate_02 | Plastic Crate 02",
+   "plastic_crate_03 | Plastic Crate 03",
+   "pot_enamel_01 | Pot Enamel 01",
+   "potted_plant_01 | Potted Plant 01",
+   "potted_plant_02 | Potted Plant 02",
+   "potted_plant_04 | Potted Plant 04",
+   "retro_multimeter | Retro Multimeter",
+   "signal_flashlight | Signal Flashlight",
+   "spray_paint_bottles | Spray Paint Bottles",
+   "spray_paint_bottles_02 | Spray Paint Bottles 02",
+   "sweet_potato | Sweet Potato",
+   "vintage_binocular | Vintage Binoculars",
+   "vintage_cabinet_01 | Vintage Cabinet 01",
+   "weed_plant_02 | Weed Plant 02",
+   "wine_bottles_01 | Wine Bottles 01",
+   "wooden_bucket_01 | Wooden Bucket 01",
+   "wooden_bucket_02 | Wooden Bucket 02",
+   "wooden_crate_01 | Wooden Crate 01",
+   "wooden_crate_02 | Wooden Crate 02",
+   "wooden_lantern_01 | Wooden Lantern 01",
+   "wooden_military_crate | Wooden Military Crate"
+  ]
+ }
+}

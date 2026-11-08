@@ -1,0 +1,33 @@
+name: Fetch CC0 assets for review
+
+# Downloads the Poly Haven CC0 surfaces and props listed in
+# Tools/fetch_cc0_assets.py and commits them to the `assets/cc0-vendor`
+# branch for review and vendoring.  App builds never download anything.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "feature/v1.3.0" ]
+    paths: [ "Tools/fetch_cc0_assets.py", ".github/workflows/fetch-cc0-assets.yml" ]
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch and verify
+        run: python Tools/fetch_cc0_assets.py
+      - name: Publish to assets/cc0-vendor
+        run: |
+          git config user.name "portalalley-asset-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout --orphan assets/cc0-vendor
+          git rm -rfq --cached . >/dev/null
+          git add -f Vendor/polyhaven
+          git commit -qm "CC0 assets fetched from Poly Haven (verified checksums)"
+          git push -f origin assets/cc0-vendor

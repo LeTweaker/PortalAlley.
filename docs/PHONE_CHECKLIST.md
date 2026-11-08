@@ -39,6 +39,23 @@ texture (not a blank white wall/floor), in a clear area.
 | 27 | RESTART SCAN before and after placing | fresh scan, preview returns within seconds |
 | 28 | Diagnostics → turn Easy Mode off | old pin/drag/Open flow still works |
 
+## v1.3.0 realism and universal placement
+
+| # | Do this | Expect / record |
+|---|---|---|
+| 29 | Start, aim at a wall 1-3 m away, CREATE PORTAL | a crosshair sits on the wall; the outline glides rather than jumps; the opening appears as a clean cut with a thin dark edge and a light reveal, and no cyan frame |
+| 30 | Look through it from straight on and 1 m to each side | photographed walls, scanned AC units, bins and cabinets; dark contact shadows under the bins and vending machines; awning and eaves cast shade. Screenshot please |
+| 31 | Look closely at the AC units | the fan grilles are see-through mesh (alpha cut-out), not solid black or white squares |
+| 32 | Check texture orientation | shop signs, the 止まれ road marking and wall stains are the right way up (this tests the iOS 18 LowLevelMesh path) |
+| 33 | Reposition, aim at the floor 1.5-3 m ahead, CREATE | chip "Floor - look down into the alley"; "Don't step onto it" banner; looking down shows the street ~7 m below with cables and signs between; **nothing pokes up into the room** (tests the shader clip) |
+| 34 | Walk to the edge of the floor portal | "Watch your step" warning while over it or within ~35 cm |
+| 35 | Reposition, aim at the ceiling, CREATE | chip "Ceiling - look up into the alley"; looking up shows the arch sign, wires and sky; no street or room-height objects hanging into the room |
+| 36 | Aim at a sloped surface (ramp, propped board, sloped ceiling) | levelled portal with "Sloped surface" hint, or a standing doorway if too steep |
+| 37 | Adjust → − / + and the rotate buttons | the opening grows and shrinks (50-160 %) and rotates in 15° steps; the alley does **not** scale or tilt; rotation is hidden for doorways standing on the floor |
+| 38 | Diagnostics → "Classic doorway frame" on and off | swaps between the old frame and the cut edge on the placed portal |
+| 39 | LiDAR on, floor portal placed, hand or chair over it | your hand hides the opening; the floor around the hole never erases it |
+| 40 | Leave a wall portal and a floor portal open 10 min each | report fps mean / p95 / % over budget, memory and thermal (1.3 has 15× the geometry and 2× the texture memory of 1.2.2) |
+
 Please report: phone model, iOS build, fps mean / p95 / % over budget, memory at launch and after
 10 min, thermal state at the end, max correction (cm), and anything that looked wrong. A photo or
 screen recording helps a lot for tuning exposure and rain brightness.
