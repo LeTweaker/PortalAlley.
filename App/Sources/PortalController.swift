@@ -236,6 +236,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     nonisolated func sessionWasInterrupted(_ session: ARSession) {
         MainActor.assumeIsolated {
             self.interrupted = true
+            self.boundary.suspendCrossing()
             self.model?.instruction = "Paused"
         }
     }
@@ -245,6 +246,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             self.interrupted = false
             // Keep the map and the anchor; require stable tracking before trusting it again.
             self.tracking.noteInterruption(now: CACurrentMediaTime())
+            self.boundary.suspendCrossing()
         }
     }
 
@@ -519,7 +521,8 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         let portalWorld = ae.transformMatrix(relativeTo: nil)
         let camLocal = PortalMath.toPortalSpace(PortalMath.translation(arView.cameraTransform.matrix), portal: portalWorld)
         lastCameraLocal = camLocal
-        let b = boundary.evaluate(cameraLocal: camLocal, dims: dims)
+        let b = boundary.evaluate(cameraLocal: camLocal, dims: dims,
+                                  allowCrossing: machine.phase == .open && decision.trustworthy && !interrupted)
         let t = Float(now - phaseStart)
 
         var look: PortalLook
@@ -546,15 +549,19 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         look.frameOpacity *= displayFrame
         look.veil = max(look.veil, 1 - b.clarity)
         currentLook = look
-        rig.apply(look, worldVisible: b.worldVisible && look.apertureOpen > 0.001, interiorVisible: !b.behind)
+        rig.apply(look, worldVisible: b.worldVisible && look.apertureOpen > 0.001,
+                  interiorVisible: b.worldVisible, insideWorld: b.insideWorld)
+        // Room-side LiDAR geometry must not cut holes in the virtual alley
+        // while the camera is inside. ARKit continues tracking the real room.
+        occlusion.enabled = lidarSupported && lidarOcclusion && !b.insideWorld
         audio?.update(aperture: b.worldVisible ? look.apertureOpen * b.clarity : 0, frame: look.frameOpacity, muted: muted)
 
-        if lidarOcclusion, let anchors = arView.session.currentFrame?.anchors.compactMap({ $0 as? ARMeshAnchor }) {
+        if lidarOcclusion && !b.insideWorld, let anchors = arView.session.currentFrame?.anchors.compactMap({ $0 as? ARMeshAnchor }) {
             occlusion.update(meshAnchors: anchors, portalWorld: portalWorld, now: now)
         }
         if decision.offerReplacement && model?.showReplaceOffer == false { model?.showReplaceOffer = true }
         let msg = interrupted ? "Paused" : (decision.message ?? b.message)
-        setInstruction(msg ?? "", warning: msg != nil)
+        setInstruction(msg ?? "", warning: decision.message != nil || (!b.insideWorld && b.message != nil))
         if machine.phase == .open {
             diagnostics.soakTick(tracking: qualityText, corrections: corrections, maxCorrectionCm: Double(maxCorrection * 100), tier: tier.rawValue)
         }
@@ -629,6 +636,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         d.maxCorrectionCm = Double(maxCorrection * 100)
         d.appWritesAfterLock = appWritesAfterLock
         d.cameraLocal = String(format: "x %.2f y %.2f z %.2f", lastCameraLocal.x, lastCameraLocal.y, lastCameraLocal.z)
+        d.cameraLocal += boundary.insideWorld ? " (inside alley)" : " (room side)"
         d.tier = tier.rawValue
         if let a = assets { d.lights = tier.lightCount(a.manifest); d.shaderIssues = a.shaderFallbacks }
         d.triangles = rig?.triangleCount ?? 0
@@ -641,4 +649,5 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         model.diagnostics = d
     }
 }
+
 

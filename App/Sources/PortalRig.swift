@@ -21,6 +21,10 @@ final class PortalRig {
     let frameRoot = Entity()
     let interiorRoot = Entity()
     let worldRoot = Entity()
+    private let insideBackdrop = Entity()
+    private var apertureMask: ModelEntity!
+    private var wasInside = false
+    private var spillRequested = false
     let ambientEmitter = Entity()
     let humEmitter = Entity()
 
@@ -52,6 +56,7 @@ final class PortalRig {
         try buildFrame()
         try buildInterior()
         try buildWorld()
+        try buildInsideEnvironment()
     }
 
     // MARK: build
@@ -82,6 +87,7 @@ final class PortalRig {
 
     private func buildInterior() throws {
         let occ = try assets.modelEntity(assets.parts("portal_aux", chunk: "occluder"), name: "occluderWall")
+        apertureMask = occ
         interiorRoot.addChild(occ)
         let leafParts = assets.parts("portal_aux", chunk: "leaf")
         leafL = try assets.modelEntity(leafParts, name: "leafL")
@@ -124,7 +130,58 @@ final class PortalRig {
         assets.applyLightBudget(tier, under: root)
     }
 
-    func setSpill(_ on: Bool) { spill?.isEnabled = on }
+    func setSpill(_ on: Bool) {
+        spillRequested = on
+        spill?.isEnabled = on && !wasInside
+    }
+
+    /// Inside-only closure: the original alley was authored for a front view.
+    /// A surrounding sky and textured return wall prevent the live room leaking
+    /// around the destination when the camera turns sideways, upwards or back.
+    /// A depth-only rectangle in the return opening reveals the live camera
+    /// image there, in front of the enclosing sky but behind the frame.
+    private func buildInsideEnvironment() throws {
+        worldRoot.addChild(insideBackdrop)
+        insideBackdrop.name = "InsideEnvironment"
+        insideBackdrop.isEnabled = false
+        var sky = try assets.uniqueMaterial("sky")
+        if var custom = sky as? CustomMaterial {
+            custom.faceCulling = .front
+            sky = custom
+        } else if var fallback = sky as? UnlitMaterial {
+            fallback.faceCulling = .front
+            sky = fallback
+        }
+        let dome = ModelEntity(mesh: .generateSphere(radius: 120), materials: [sky])
+        dome.name = "InsideSky"
+        insideBackdrop.addChild(dome)
+
+        // Vertices are baked in portal space, preserving the custom shader's
+        // identity-transform convention. Winding faces the destination (-z).
+        func rectangle(_ name: String, x0: Float, x1: Float, y0: Float, y1: Float,
+                       z: Float, material: RealityKit.Material) throws {
+            var d = MeshDescriptor(name: name)
+            d.positions = MeshBuffers.Positions([SIMD3(x0, y0, z), SIMD3(x1, y0, z),
+                                                SIMD3(x1, y1, z), SIMD3(x0, y1, z)])
+            d.normals = MeshBuffers.Normals(Array(repeating: SIMD3<Float>(0, 0, -1), count: 4))
+            d.textureCoordinates = MeshBuffers.TextureCoordinates([
+                SIMD2(x0, y0), SIMD2(x1, y0), SIMD2(x1, y1), SIMD2(x0, y1)])
+            d.primitives = .triangles([0, 2, 1, 0, 3, 2])
+            let e = ModelEntity(mesh: try MeshResource.generate(from: [d]), materials: [material])
+            e.name = name
+            insideBackdrop.addChild(e)
+        }
+        let wall = try assets.material("concrete_dark")
+        let hw = dims.openHalfWidth
+        let wallZ = dims.frameFrontZ + 0.025
+        try rectangle("ReturnWallLeft", x0: -120, x1: -hw, y0: -120, y1: 120, z: wallZ, material: wall)
+        try rectangle("ReturnWallRight", x0: hw, x1: 120, y0: -120, y1: 120, z: wallZ, material: wall)
+        try rectangle("ReturnWallTop", x0: -hw, x1: hw, y0: dims.openY1, y1: 120, z: wallZ, material: wall)
+        try rectangle("ReturnWallBottom", x0: -hw, x1: hw, y0: -120, y1: dims.openY0, z: wallZ, material: wall)
+        try rectangle("ReturnToRoom", x0: -hw, x1: hw, y0: dims.openY0, y1: dims.openY1,
+                      z: wallZ + 0.005, material: OcclusionMaterial())
+        triangleCount += 10
+    }
 
     /// Leaves are unit quads (x 0..1, y 0..1) scaled to cover the hole from the
     /// sides toward the centre.  open = 1 disables them entirely.
@@ -148,16 +205,22 @@ final class PortalRig {
     }
 
     /// Applies one display state.  Only changed values are pushed to RealityKit.
-    func apply(_ look: PortalLook, worldVisible: Bool, interiorVisible: Bool) {
+    func apply(_ look: PortalLook, worldVisible: Bool, interiorVisible: Bool, insideWorld: Bool = false) {
+        let sideChanged = wasInside != insideWorld
+        wasInside = insideWorld
         interiorRoot.isEnabled = interiorVisible
         worldRoot.isEnabled = worldVisible
+        insideBackdrop.isEnabled = insideWorld
+        apertureMask.isEnabled = !insideWorld
+        spill?.isEnabled = spillRequested && !insideWorld
+        frameRoot.findEntity(named: "contactShadow")?.isEnabled = !insideWorld
         let l = look
-        if abs(l.apertureOpen - lastLook.apertureOpen) > 0.0005 { setLeaves(open: l.apertureOpen) }
-        if abs(l.veil - lastLook.veil) > 0.002 {
+        if sideChanged || abs(l.apertureOpen - lastLook.apertureOpen) > 0.0005 { setLeaves(open: l.apertureOpen) }
+        if sideChanged || abs(l.veil - lastLook.veil) > 0.002 {
             setParams(veil, SIMD4(l.veil, 0, 0, 1))
             veil.isEnabled = l.veil > 0.002
         }
-        if abs(l.seamIntensity - lastLook.seamIntensity) > 0.002 || abs(l.apertureOpen - lastLook.apertureOpen) > 0.0005 {
+        if sideChanged || abs(l.seamIntensity - lastLook.seamIntensity) > 0.002 || abs(l.apertureOpen - lastLook.apertureOpen) > 0.0005 {
             setParams(seam, SIMD4(l.seamIntensity, dims.holeHalfWidth * l.apertureOpen, 0, 0))
             seam.isEnabled = l.seamIntensity > 0.002
         }
@@ -175,6 +238,12 @@ final class PortalRig {
                 }
             }
             frameRoot.isEnabled = l.frameOpacity > 0.001
+        }
+        if insideWorld {
+            leafL.isEnabled = false
+            leafR.isEnabled = false
+            veil.isEnabled = false
+            seam.isEnabled = false
         }
         lastLook = l
     }
@@ -229,4 +298,5 @@ final class PreviewRig {
 
     func hide() { root.isEnabled = false }
 }
+
 
