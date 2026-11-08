@@ -33,6 +33,8 @@ public struct PlacementInput: Equatable, Sendable {
 }
 
 public enum PlacementIssue: Equatable, Sendable {
+    case notAWall
+    case wallTooSmall
     case trackingNotReady
     case notAFloor
     case notLowestSurface
@@ -45,6 +47,8 @@ public enum PlacementIssue: Equatable, Sendable {
     /// One short plain-language instruction for the user.
     public var message: String {
         switch self {
+        case .notAWall: return "Point at a wall and move the phone slowly"
+        case .wallTooSmall: return "Scan a little more of the wall"
         case .trackingNotReady: return "Hold steady for a moment"
         case .notAFloor: return "Aim at the floor"
         case .notLowestSurface: return "Aim at the floor, not furniture"
@@ -73,6 +77,15 @@ public struct PlacementRules: Sendable {
     /// first failing rule is reported, so the instruction is always specific.
     public func evaluate(_ i: PlacementInput) -> PlacementIssue? {
         guard i.trackingNormal else { return .trackingNotReady }
+        if i.planeKind == .wall {
+            let d = simd_length(SIMD2(i.cameraPosition.x - i.hitPoint.x, i.cameraPosition.z - i.hitPoint.z))
+            if d < 0.45 { return .tooClose }
+            if d > maxDistance { return .tooFar }
+            if max(i.planeExtent.x, i.planeExtent.y) < 0.35 || min(i.planeExtent.x, i.planeExtent.y) < 0.25 { return .wallTooSmall }
+            // A wall opening intentionally overlaps the physical wall. Floor
+            // height and LiDAR clear-volume heuristics are not applicable.
+            return nil
+        }
         switch i.planeKind {
         case .table, .seat, .ceiling, .wall, .door, .window: return .notAFloor
         case .floor, .unclassified, .classificationUnsupported: break
@@ -108,4 +121,5 @@ public struct DoorwayVolume: Sendable {
         abs(p.x) < halfWidth && abs(p.z) < halfDepth && p.y > minY && p.y < maxY
     }
 }
+
 

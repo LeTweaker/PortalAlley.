@@ -15,6 +15,7 @@ final class AppModel: ObservableObject {
     @Published var diagnostics = DiagnosticsSnapshot()
     @Published var fatalMessage: String?
     @Published var assetsReady = false
+    @Published var insideView = false
 
     // developer settings
     @Published var tier: QualityTier = .deviceDefault
@@ -41,6 +42,7 @@ final class AppModel: ObservableObject {
     func back() { controller?.back() }
     func reposition() { controller?.reposition() }
     func close() { controller?.close() }
+    func toggleInsideView() { controller?.toggleInsideView() }
     func keepWaiting() { controller?.keepWaiting() }
     func placeAgain() { controller?.reposition() }
     func toggleMute() { muted.toggle(); controller?.setMuted(muted) }
@@ -50,3 +52,4 @@ final class AppModel: ObservableObject {
     func setARStats(_ on: Bool) { showARStatistics = on; controller?.setARStatistics(on) }
     func report() -> String { controller?.diagnosticsReport() ?? "" }
 }
+

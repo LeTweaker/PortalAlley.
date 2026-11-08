@@ -33,6 +33,34 @@ public struct PortalDimensions: Codable, Equatable, Sendable {
 }
 
 public enum PortalMath {
+    public static func interiorViewOffset(cameraLocal c: SIMD3<Float>) -> SIMD3<Float> {
+        c - SIMD3<Float>(0, min(max(c.y, 0.5), 1.9), -0.8)
+    }
+    /// Align the aperture to a vertical wall, with its back flush to the wall.
+    /// Use a confirmed floor when one is available; otherwise centre at the hit.
+    public static func wallPlacement(hit: SIMD3<Float>, normal: SIMD3<Float>, camera: SIMD3<Float>,
+                                     floorY: Float?, dims: PortalDimensions) -> simd_float4x4? {
+        var n = SIMD3<Float>(normal.x, 0, normal.z)
+        guard simd_length(n) > 0.1 else { return nil }
+        n = simd_normalize(n)
+        if simd_dot(n, camera - hit) < 0 { n = -n }
+        var origin = hit - n * dims.occluderZ
+        if let floorY, hit.y - floorY > 0.3 && hit.y - floorY < 2.5 {
+            origin.y = floorY
+        } else {
+            origin.y = hit.y - (dims.openY0 + dims.openY1) * 0.5
+        }
+        return transform(position: origin, yaw: atan2(n.x, n.z))
+    }
+
+    public static func intersectPlane(origin: SIMD3<Float>, direction: SIMD3<Float>,
+                                      point: SIMD3<Float>, normal: SIMD3<Float>) -> SIMD3<Float>? {
+        let denom = simd_dot(direction, normal)
+        guard abs(denom) > 1e-5 else { return nil }
+        let t = simd_dot(point - origin, normal) / denom
+        guard t > 0 else { return nil }
+        return origin + direction * t
+    }
     /// Yaw about +y that turns portal +z toward `camera` (horizontal only), so
     /// the viewing side of the doorway faces the user when it is placed.
     public static func facingYaw(floorPoint: SIMD3<Float>, camera: SIMD3<Float>) -> Float {
@@ -103,3 +131,4 @@ public enum PortalMath {
         return abs(v - target) < 0.0005 ? target : v
     }
 }
+

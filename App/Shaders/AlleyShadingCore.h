@@ -71,8 +71,10 @@ INLINE ALight a_lights(float3 p, float3 n, float3 v, float rough, float specK, f
     o.diffuse = float3(0.0);
     o.spec = float3(0.0);
     o.glow = float3(0.0);
-    float shin = mix(6.0, 220.0, (1.0 - rough) * (1.0 - rough));
-    float norm = (shin + 8.0) / (8.0 * A_PI);
+    float alpha = max(rough * rough, 0.015);
+    float alpha2 = alpha * alpha;
+    float ndv = max(dot(n, v), 0.025);
+    float kGeom = (rough + 1.0) * (rough + 1.0) / 8.0;
     for (int i = 0; i < ALLEY_LIGHT_COUNT; i++) {
         if (i >= count) { break; }
         float4 lc = ALLEY_LIGHT_COL[i];
@@ -90,9 +92,16 @@ INLINE ALight a_lights(float3 p, float3 n, float3 v, float rough, float specK, f
         float ndl = clamp(dot(n, L), 0.0, 1.0);
         float wrap = clamp((dot(n, L) + 0.25) / 1.25, 0.0, 1.0);
         float3 c = lc.rgb * amp * att;
-        o.diffuse += c * mix(ndl, wrap, 0.3);
-        float3 h = normalize(L + v);
-        o.spec += c * pow(clamp(dot(n, h), 0.0, 1.0), shin) * norm * specK * ndl;
+        o.diffuse += c * mix(ndl, wrap, 0.1) * 0.96;
+        float3 h = normalize(L + v + float3(0.000001));
+        float ndh = clamp(dot(n, h), 0.0, 1.0);
+        float vdh = clamp(dot(v, h), 0.0, 1.0);
+        float denom = ndh * ndh * (alpha2 - 1.0) + 1.0;
+        float D = alpha2 / max(A_PI * denom * denom, 0.000001);
+        float Gv = ndv / (ndv * (1.0 - kGeom) + kGeom);
+        float Gl = ndl / max(ndl * (1.0 - kGeom) + kGeom, 0.0001);
+        float F = 0.04 + 0.96 * pow(1.0 - vdh, 5.0);
+        o.spec += c * D * Gv * Gl * F * specK / max(4.0 * ndv, 0.0001);
         o.glow += lc.rgb * amp * win * 0.6;
     }
     return o;
@@ -183,26 +192,32 @@ INLINE float3 shade_lit(float3 p, float3 n, float3 v, float3 albedo, float3 pack
 }
 
 // Ground: puddle map (aux r), ripples, mirror-like streaks.
-INLINE float3 shade_ground(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count) {
+INLINE float3 shade_ground_detail(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count, float3 detailNormal) {
     float wet = clamp(prm.x * (0.55 + 0.45 * packed.z), 0.0, 1.0);
     float pud = clamp(puddle * prm.x, 0.0, 1.0);
     float2 rp = a_ripples(float2(p.x, p.z), t) * prm.z;
-    float3 n = normalize(float3(rp.x * (0.06 + 0.9 * pud), 1.0, rp.y * (0.06 + 0.9 * pud)));
-    float rough = mix(packed.x, 0.18, wet);
-    rough = mix(rough, 0.03, pud);
+    float3 baseN = normalize(mix(detailNormal, float3(0.0, 1.0, 0.0), pud * 0.9));
+    float3 n = normalize(baseN + float3(rp.x * (0.04 + 0.55 * pud), 0.0, rp.y * (0.04 + 0.55 * pud)));
+    float rough = mix(packed.x, 0.22, wet * 0.7);
+    rough = mix(rough, 0.055, pud);
     float3 alb = albedo * mix(1.0, 0.55, wet);
     alb = mix(alb, alb * 0.32, pud);
     float ao = packed.y;
-    float3 nflat = float3(0.0, 1.0, 0.0);
+    float3 nflat = baseN;
     ALight l = a_lights(p, nflat, v, rough, 0.0, t, count);
     float3 col = alb * (l.diffuse * ao + a_ambient(nflat, ao));
     float sharp = clamp(1.0 - rough * 2.2, 0.0, 1.0);
     float fres = 0.02 + 0.98 * pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 5.0);
     float3 streak = a_wet_streaks(p, n, v, sharp, t, count);
-    col += streak * (0.30 + 1.0 * fres) * prm.y * (0.2 + 0.8 * max(wet, pud)) * ao;
+    col += streak * (0.06 + 0.94 * fres) * prm.y * (0.2 + 0.8 * max(wet, pud)) * ao;
     float3 R = reflect(-v, n);
     col += A_SKY_REFL * clamp(R.y * 2.0, 0.0, 1.0) * fres * (0.3 + 0.7 * pud);
     return a_tonemap(a_fog(col, p, l.glow), prm.w);
+}
+
+// Legacy/decal/desktop callers use an unperturbed normal unless they have maps.
+INLINE float3 shade_ground(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count) {
+    return shade_ground_detail(p, v, albedo, packed, puddle, prm, t, count, float3(0.0, 1.0, 0.0));
 }
 
 // Emissive signage, lanterns, bulbs.  prm: gain, flicker id, scroll, exposure
@@ -258,3 +273,4 @@ INLINE float4 shade_steam(float3 p, float density, float4 prm, float t, int coun
 }
 
 #endif
+

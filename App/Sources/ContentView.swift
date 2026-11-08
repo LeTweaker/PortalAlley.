@@ -76,11 +76,11 @@ private struct StartCard: View {
             VStack(spacing: 10) {
                 Text("Portal")
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
-                Text("Place a doorway in your room and look through it into a rainy night alley.")
+                Text("Open a window through your wall into a rainy Tokyo-inspired alley.")
                     .font(.system(size: 16))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85))
-                Text("Reach your phone through the opening to look around the alley. Pull it back through the doorway to return.")
+                Text("Scan a wall, tap to pin the opening, then drag it into place. Use Look inside to explore without crossing the wall.")
                     .font(.system(size: 13))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.65))
@@ -95,6 +95,9 @@ private struct StartCard: View {
                 .tint(Color(red: 0.25, green: 0.78, blue: 0.9))
                 .disabled(!model.assetsReady)
                 .padding(.top, 8)
+                Link("Surface materials: Poly Haven · CC0", destination: URL(string: "https://polyhaven.com/license")!)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.6))
             }
             .padding(22)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -130,6 +133,14 @@ private struct BottomControls: View {
             }
         case .opening, .open, .closing:
             HStack {
+                Button(action: model.toggleInsideView) {
+                    Label(model.insideView ? "Back to room" : "Look inside", systemImage: model.insideView ? "arrow.uturn.backward" : "viewfinder")
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.12, green: 0.4, blue: 0.46))
+                .disabled(model.phase != .open)
                 Spacer()
                 VStack(spacing: 12) {
                     RoundButton(system: "arrow.triangle.2.circlepath", label: "Reposition", action: model.reposition)
@@ -197,4 +208,5 @@ private struct FatalCard: View {
         .padding(24)
     }
 }
+
 

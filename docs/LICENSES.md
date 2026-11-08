@@ -17,3 +17,17 @@ All businesses are fictional: ほたる横丁, 喫茶ミナト, BAR 夜霧, 古�
 
 Build tooling (not shipped): Python 3, NumPy, SciPy, Pillow; XcodeGen; GitHub Actions.
 Sideloading (your machine, not part of this project): Sideloadly, iTunes/iCloud for Windows.
+
+# Photographic surface materials (v1.2)
+
+Surface materials: Poly Haven (https://polyhaven.com), CC0.
+
+- Asphalt 02: https://polyhaven.com/a/asphalt_02
+- Concrete Floor 01: https://polyhaven.com/a/concrete_floor_01
+- Concrete Wall 003: https://polyhaven.com/a/concrete_wall_003
+
+The build-time importer identifies itself with a unique User-Agent and the app
+credits Poly Haven on its start card. `material-source-report` from the build
+contains the exact source URLs and checksums. Installed apps bundle the results
+and never call the API. Original asset license: https://polyhaven.com/license.
+

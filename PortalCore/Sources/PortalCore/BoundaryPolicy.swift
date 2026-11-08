@@ -24,6 +24,14 @@ public struct BoundaryPolicy: Sendable {
 
     public init() {}
 
+    /// Explicit virtual entry for a portal mounted on a solid real wall.
+    /// Only the rendered destination is offset; the physical anchor stays put.
+    public mutating func enterInside(cameraLocal: SIMD3<Float>) {
+        insideWorld = true
+        pendingInside = nil
+        previousCamera = cameraLocal
+    }
+
     /// Do not infer a crossing over a tracking interruption or relocalization.
     /// Preserve the last confirmed side, but discard the discontinuous segment.
     public mutating func suspendCrossing() {
@@ -84,4 +92,5 @@ public struct BoundaryPolicy: Sendable {
                                     : (d < 0 ? "Enter through the opening, or return to the front" : nil))
     }
 }
+
 

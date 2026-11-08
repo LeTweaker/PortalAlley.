@@ -294,3 +294,4 @@ DIMENSIONS = dict(
     holeHalfWidth=HOLE_HALF_W, holeY0=HOLE_Y0, holeY1=HOLE_Y1,
     veilZ=APERTURE_PANEL_Z - 0.001, seamZ=APERTURE_PANEL_Z + 0.0015,
 )
+
