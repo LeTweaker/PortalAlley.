@@ -27,6 +27,15 @@ final class AppModel: ObservableObject {
     @Published var confirmation: String?
     private var confirmationTask: Task<Void, Never>?
 
+    // v1.3: placed portal controls
+    @Published var portalKind = ""            // wall | floor | ceiling
+    @Published var canGrow = false
+    @Published var canShrink = false
+    @Published var canRotate = false
+    @Published var portalScaleText = "100%"
+    @Published var floorWarning = false
+    @Published var classicBoundary = false
+
     func showConfirmation(_ text: String) {
         confirmation = text
         confirmationTask?.cancel()
@@ -62,6 +71,9 @@ final class AppModel: ObservableObject {
     func createPortal() { controller?.createPortal() }
     func movePortal() { controller?.movePortal() }
     func findPortal() { controller?.findPortal() }
+    func resizePortal(grow: Bool) { controller?.resizePortal(grow: grow) }
+    func rotatePortal(clockwise: Bool) { controller?.rotatePortal(clockwise: clockwise) }
+    func setClassicBoundary(_ on: Bool) { controller?.setClassicBoundary(on) }
     func setEasyMode(_ on: Bool) { controller?.setEasyMode(on) }
     func confirm() { controller?.confirm() }
     func back() { controller?.back() }

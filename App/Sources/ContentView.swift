@@ -80,14 +80,14 @@ private struct StartCard: View {
             VStack(spacing: 10) {
                 Text("Portal")
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
-                Text("Version 1.2.2")
+                Text("Version 1.3.0")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.6))
-                Text("Open a window through your wall into a rainy Tokyo-inspired alley.")
+                Text("Open a window into a rainy Tokyo back alley - in a wall, the floor or the ceiling.")
                     .font(.system(size: 16))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.85))
-                Text("Point your camera at a wall and tap CREATE PORTAL. No wall? It places a standing doorway in front of you instead.")
+                Text("Point at a wall, the floor or the ceiling and tap CREATE PORTAL. Nothing found? It places a standing doorway in front of you.")
                     .font(.system(size: 13))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.65))
@@ -149,46 +149,105 @@ private struct BottomControls: View {
                 .disabled(!model.canConfirm)
             }
         case .opening, .open, .closing:
-            VStack(spacing: 12) {
-                HStack(alignment: .bottom) {
-                    if model.portalOffscreen && !model.insideView && model.phase == .open {
-                        FindPortalButton(model: model)
-                    }
-                    Spacer()
-                    VStack(spacing: 12) {
-                        RoundButton(system: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
-                                    label: model.muted ? "Unmute" : "Mute", action: model.toggleMute)
-                        RoundButton(system: "xmark", label: "Close", action: model.close)
-                    }
-                }
-                HStack(spacing: 10) {
-                    Button(action: model.toggleInsideView) {
-                        Label(model.insideView ? "Back to room" : "Look inside",
-                              systemImage: model.insideView ? "arrow.uturn.backward" : "viewfinder")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(maxWidth: .infinity).padding(.vertical, 10)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.12, green: 0.4, blue: 0.46))
-                    .disabled(model.phase != .open)
-                    Button(action: model.movePortal) {
-                        Label("MOVE PORTAL", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
-                            .font(.system(size: 14, weight: .bold))
-                            .frame(maxWidth: .infinity).padding(.vertical, 10)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
-                    .disabled(model.phase == .closing)
-                }
-                Button(action: model.restartScan) {
-                    Text("RESTART SCAN").font(.system(size: 12, weight: .semibold)).padding(.vertical, 4)
-                }
-                .buttonStyle(.borderless)
-                .tint(.white.opacity(0.8))
-            }
+            PlacedControls(model: model)
         case .idle:
             EmptyView()
         }
+    }
+}
+
+/// After placement the UI stays small: Reposition / Adjust / Close Portal.
+/// Adjust reveals Resize (and Rotate for openings not standing on the floor).
+private struct PlacedControls: View {
+    @ObservedObject var model: AppModel
+    @State private var adjusting = false
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(alignment: .bottom) {
+                if model.portalOffscreen && !model.insideView && model.phase == .open {
+                    FindPortalButton(model: model)
+                }
+                Spacer()
+                RoundButton(system: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                            label: model.muted ? "Unmute" : "Mute", action: model.toggleMute)
+            }
+            if adjusting && model.phase == .open {
+                AdjustRow(model: model).transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if model.portalKind == "wall" {
+                Button(action: model.toggleInsideView) {
+                    Label(model.insideView ? "Back to room" : "Look inside",
+                          systemImage: model.insideView ? "arrow.uturn.backward" : "viewfinder")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.12, green: 0.4, blue: 0.46))
+                .disabled(model.phase != .open)
+            }
+            HStack(spacing: 8) {
+                PillButton(title: "Reposition", system: "arrow.up.and.down.and.arrow.left.and.right", action: model.movePortal)
+                    .disabled(model.phase == .closing)
+                PillButton(title: adjusting ? "Done" : "Adjust", system: adjusting ? "checkmark" : "slider.horizontal.3") {
+                    withAnimation(.easeOut(duration: 0.2)) { adjusting.toggle() }
+                }
+                .disabled(model.phase != .open || model.insideView)
+                PillButton(title: "Close Portal", system: "xmark", action: model.close)
+                    .disabled(model.phase == .closing)
+            }
+            Button(action: model.restartScan) {
+                Text("RESTART SCAN").font(.system(size: 12, weight: .semibold)).padding(.vertical, 2)
+            }
+            .buttonStyle(.borderless)
+            .tint(.white.opacity(0.8))
+        }
+        .onChange(of: model.phase) { _, phase in if phase != .open { adjusting = false } }
+    }
+}
+
+/// Resize (aperture only - the alley keeps real-world scale) and Rotate.
+private struct AdjustRow: View {
+    @ObservedObject var model: AppModel
+    var body: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 4) {
+                Button { model.resizePortal(grow: false) } label: { Image(systemName: "minus").frame(width: 34, height: 34) }
+                    .disabled(!model.canShrink).accessibilityLabel("Smaller")
+                Text(model.portalScaleText).font(.system(size: 13, weight: .semibold).monospacedDigit()).frame(minWidth: 44)
+                Button { model.resizePortal(grow: true) } label: { Image(systemName: "plus").frame(width: 34, height: 34) }
+                    .disabled(!model.canGrow).accessibilityLabel("Bigger")
+            }
+            .padding(.horizontal, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            if model.canRotate {
+                HStack(spacing: 4) {
+                    Button { model.rotatePortal(clockwise: false) } label: { Image(systemName: "rotate.left").frame(width: 34, height: 34) }
+                        .accessibilityLabel("Rotate left")
+                    Button { model.rotatePortal(clockwise: true) } label: { Image(systemName: "rotate.right").frame(width: 34, height: 34) }
+                        .accessibilityLabel("Rotate right")
+                }
+                .padding(.horizontal, 8)
+                .background(.ultraThinMaterial, in: Capsule())
+            }
+        }
+        .foregroundStyle(.white)
+        .font(.system(size: 16, weight: .semibold))
+    }
+}
+
+private struct PillButton: View {
+    let title: String
+    let system: String
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: system)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1).minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity).padding(.vertical, 10)
+        }
+        .buttonStyle(.bordered)
+        .tint(.white)
     }
 }
 
@@ -199,7 +258,9 @@ private struct CreatePanel: View {
         VStack(spacing: 10) {
             if model.phase == .aiming, !model.placementMethod.isEmpty {
                 HStack(spacing: 6) {
-                    Image(systemName: model.placementMethod.hasPrefix("No wall") ? "figure.stand" : "rectangle.portrait.and.arrow.forward")
+                    Image(systemName: model.placementMethod.hasPrefix("No surface") ? "figure.stand" :
+                            (model.placementMethod.hasPrefix("Floor") ? "arrow.down.to.line" :
+                                (model.placementMethod.hasPrefix("Ceiling") ? "arrow.up.to.line" : "rectangle.portrait.and.arrow.forward")))
                     Text(model.placementMethod)
                 }
                 .font(.system(size: 13, weight: .semibold))
@@ -222,7 +283,7 @@ private struct CreatePanel: View {
             .buttonStyle(.borderedProminent)
             .tint(portalTint)
             .disabled(!model.canCreate)
-            .accessibilityHint("Places the doorway where the glowing outline is")
+            .accessibilityHint("Opens the portal where the glowing outline is")
             HStack {
                 RoundButton(system: "xmark", label: "Close", action: model.close)
                 Spacer()

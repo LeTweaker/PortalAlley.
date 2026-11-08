@@ -116,7 +116,9 @@ def bake(world, materials, lights, log=print):
             part.pos, part.nrm, part.uv, part.idx = [P], [N], [UV], [I]
             part.count = len(P)
             recv_keys.append(key)
-        if sh not in NON_OCCLUDING_SHADERS and chunk not in ("sky", "rain"):
+        # the back cap only exists in floor/ceiling views: it must not darken
+        # the wall-portal lighting it would never be seen in
+        if sh not in NON_OCCLUDING_SHADERS and chunk not in ("sky", "rain", "backcap"):
             P, _, _, I = part.arrays()
             occ.append(P[I.reshape(-1, 3)].reshape(-1, 9))
     tris = np.concatenate(occ).astype("<f4")

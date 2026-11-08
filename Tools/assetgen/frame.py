@@ -202,7 +202,9 @@ def build_occluders():
     a rectangular hole; the alley is only visible through the hole."""
     mb = MeshBuilder()
     mb.chunk = "occluder"
-    W, Y0, Y1 = 220.0, -6.0, 160.0
+    # Y0 reaches far below the doorway: a floor portal turns portal -y into
+    # "toward the user", and the destination must stay hidden there too.
+    W, Y0, Y1 = 220.0, -200.0, 200.0
     z = OCCLUDER_Z
     hw, hy0, hy1 = HOLE_HALF_W, HOLE_Y0, HOLE_Y1
     rects = [
@@ -213,6 +215,45 @@ def build_occluders():
     ]
     for x0, y0, x1, y1 in rects:
         mb.quad("occluder", v3(x0, y0, z), v3(x1 - x0, 0, 0), v3(0, y1 - y0, 0))
+    return mb
+
+
+# ---------------------------------------------------------------- v1.3 subtle boundary
+TRIM_W = 0.016        # visible trim width around the opening
+TRIM_D = 0.010        # how far the trim stands proud of the surface
+REVEAL_D = 0.16       # depth of the cut (wall / floor slab thickness)
+
+
+def build_subtle():
+    """Default v1.3 boundary: an opening cut exactly into the surface.
+    occluder_exact  depth-only plane whose hole IS the clear opening (no frame
+                    hides the mask edge, so the edge itself is the boundary)
+    veil_exact      the too-close veil, opening-sized (no halo on the wall)
+    trim            a thin graphite edge ring standing 10 mm proud
+    reveal          the cut faces lining the opening, 16 cm deep, lit by the
+                    room's environment (they belong to the real surface)"""
+    mb = MeshBuilder()
+    hw, y0, y1, z = OPEN_HALF_W, OPEN_Y0, OPEN_Y1, OCCLUDER_Z
+    mb.chunk = "occluder_exact"
+    W, Y0, Y1 = 220.0, -200.0, 200.0
+    for x0, ya, x1, yb in ((-W, Y0, -hw, Y1), (hw, Y0, W, Y1), (-hw, Y0, hw, y0), (-hw, y1, hw, Y1)):
+        mb.quad("occluder", v3(x0, ya, z), v3(x1 - x0, 0, 0), v3(0, yb - ya, 0))
+    mb.chunk = "veil_exact"
+    mb.quad("veil", v3(-hw, y0, APERTURE_PANEL_Z - 0.001), v3(2 * hw, 0, 0), v3(0, y1 - y0, 0), uv0=(0, 0), uv1=(1, 1))
+    mb.chunk = "trim"
+    t, d = TRIM_W, TRIM_D
+    r = 0.003
+    mb.bevel_box("trim", (-hw - t, y0 - t, z), (-hw, y1 + t, z + d), r, faces="xXYyZ")
+    mb.bevel_box("trim", (hw, y0 - t, z), (hw + t, y1 + t, z + d), r, faces="xXYyZ")
+    mb.bevel_box("trim", (-hw, y0 - t, z), (hw, y0, z + d), r, faces="YyZ")
+    mb.bevel_box("trim", (-hw, y1, z), (hw, y1 + t, z + d), r, faces="YyZ")
+    mb.chunk = "reveal"
+    D = REVEAL_D
+    h, w = y1 - y0, 2 * hw
+    mb.wquad("reveal", v3(-hw, y0, z - D), v3(0, h, 0), v3(0, 0, D), scale=(0.5, 0.5))      # left, faces +x
+    mb.wquad("reveal", v3(hw, y0, z - D), v3(0, 0, D), v3(0, h, 0), scale=(0.5, 0.5))       # right, faces -x
+    mb.wquad("reveal", v3(-hw, y0, z - D), v3(0, 0, D), v3(w, 0, 0), scale=(0.5, 0.5))      # bottom, faces +y
+    mb.wquad("reveal", v3(-hw, y1, z - D), v3(w, 0, 0), v3(0, 0, D), scale=(0.5, 0.5))      # top, faces -y
     return mb
 
 

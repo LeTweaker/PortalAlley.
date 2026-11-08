@@ -171,13 +171,13 @@
    }
   },
   "bakedLighting": {
-   "receivers": 274642,
+   "receivers": 288519,
    "occluders": 354996,
    "aoRays": 64,
    "aoDistance": 1.6,
    "shadowSamples": 8,
-   "meanAO": 0.542,
-   "meanVisibility": 0.646
+   "meanAO": 0.558,
+   "meanVisibility": 0.652
   },
   "license": "CC0 (Poly Haven); see Vendor/polyhaven/provenance.json"
  },
@@ -2440,6 +2440,29 @@
   "occluder": {
    "shader": "occlusion"
   },
+  "trim": {
+   "shader": "pbr",
+   "color": [
+    0.04,
+    0.041,
+    0.045
+   ],
+   "roughness": 0.36,
+   "metallic": 0.65
+  },
+  "reveal": {
+   "shader": "pbr",
+   "textures": {
+    "baseColor": "plaster_albedo"
+   },
+   "roughness": 0.92,
+   "metallic": 0.0,
+   "tint": [
+    1,
+    1,
+    1
+   ]
+  },
   "contact_shadow": {
    "shader": "contactShadow",
    "textures": {
@@ -2548,15 +2571,15 @@
   },
   "portal_aux": {
    "file": "meshes/portal_aux.pmsh",
-   "vertices": 60,
-   "triangles": 30,
-   "bytes": 2468
+   "vertices": 448,
+   "triangles": 208,
+   "bytes": 17124
   },
   "alley": {
    "file": "meshes/alley.pmsh",
-   "vertices": 278316,
-   "triangles": 361016,
-   "bytes": 15430321
+   "vertices": 292260,
+   "triangles": 379209,
+   "bytes": 16205718
   }
  },
  "lights": [

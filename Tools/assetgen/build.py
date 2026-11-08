@@ -209,6 +209,9 @@ def materials():
     M["frame_light"] = dict(shader="portalEdge", textures=dict(baseColor="white", custom="neutral_packed"), tint=[0.30, 0.86, 1.0], params=[0.6, 0.0, 0.0, 0.0])
     M["frame_led"] = dict(shader="portalEdge", textures=dict(baseColor="white", custom="neutral_packed"), tint=[1.0, 0.55, 0.12], params=[0.8, 0.0, 0.0, 0.0])
     M["occluder"] = dict(shader="occlusion")
+    # v1.3 subtle boundary: lit by the room (RealityKit PBR + environment probe)
+    M["trim"] = dict(shader="pbr", color=[0.040, 0.041, 0.045], roughness=0.36, metallic=0.65)
+    M["reveal"] = dict(shader="pbr", textures=dict(baseColor="plaster_albedo"), roughness=0.92, metallic=0.0, tint=[1, 1, 1])
     M["contact_shadow"] = dict(shader="contactShadow", textures=dict(baseColor="contact_shadow", custom="neutral_packed"), tint=[0, 0, 0],
                                params=[0.75, 0, 0, 0], blend="transparent")
     M["spill"] = dict(shader="floorSpill", textures=dict(baseColor="spill", custom="neutral_packed"), tint=[1, 1, 1],
@@ -269,7 +272,7 @@ def main():
     fr = frame.build_frame()
     aux = MeshBuilder()
     for b in (frame.build_occluders(), frame.build_aperture_leaf(), frame.build_contact_shadow(), frame.build_spill(),
-              frame.build_veil(), frame.build_seam(), frame.build_preview_footprint()):
+              frame.build_veil(), frame.build_seam(), frame.build_preview_footprint(), frame.build_subtle()):
         aux.merge(b)
     world = alley.build(A, I)
     if "--no-bake" not in sys.argv:

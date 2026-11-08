@@ -156,8 +156,25 @@ INLINE float2 a_ripples(float2 xz, float t) {
     return a_ripple_cell(xz, t, 0.28, 0.0) + a_ripple_cell(xz + float2(0.13, 0.07), t * 1.13, 0.21, 11.0) * 0.8;
 }
 
-INLINE float3 a_fog(float3 col, float3 p, float3 glow) {
-    float dist = length(p - float3(0.0, 1.3, 1.6));
+// ---------------------------------------------------------- destination modes
+// Floor / ceiling portals rotate the alley behind a horizontal aperture
+// (PortalCore DestinationMode).  code = material roughness scale:
+//   0 wall (no clip) | (0,0.5] floor: keep y < h, h = code*20 | (0.5,1] ceiling: keep y > h
+INLINE float a_clip_keep(float code, float y) {
+    if (code < 0.0005) { return 1.0; }
+    if (code <= 0.5) { return step(y, code * 20.0 - 0.004); }
+    return step((code - 0.5) * 20.0 + 0.004, y);
+}
+
+// Where fog distance is measured from: a typical viewer for each mode.
+INLINE float3 a_fog_ref(float code) {
+    if (code < 0.0005) { return float3(0.0, 1.3, 1.6); }
+    if (code <= 0.5) { return float3(0.1, code * 20.0 + 1.3, -7.1); }
+    return float3(0.1, (code - 0.5) * 20.0 - 1.5, -4.6);
+}
+
+INLINE float3 a_fog(float3 col, float3 p, float3 glow, float3 fogRef) {
+    float dist = length(p - fogRef);
     float f = 1.0 - exp(-dist * 0.030);
     float low = exp(-max(p.y - A_GROUND_Y, 0.0) * 0.12);
     f = clamp(f * (0.65 + 0.35 * low), 0.0, 0.88);
@@ -191,7 +208,7 @@ INLINE float2 a_bake(float2 uv1, float heightAboveGround) {
 // Walls, props: albedo (linear, tinted), packed: r rough, g ao, b wet mask.
 // bake: uv1 (see a_bake).  Direct light is scaled by baked light visibility
 // (soft shadows of the authored lights); ambient and contact darkening by AO.
-INLINE float3 shade_lit(float3 p, float3 n, float3 v, float3 albedo, float3 packed, float4 prm, float t, int count, float2 bake) {
+INLINE float3 shade_lit(float3 p, float3 n, float3 v, float3 albedo, float3 packed, float4 prm, float t, int count, float2 bake, float3 fogRef) {
     float wet = clamp(prm.x * (0.35 + 0.65 * packed.z), 0.0, 1.0);
     float rough = mix(packed.x, packed.x * 0.45, wet);
     float3 alb = albedo * mix(1.0, 0.62, wet);
@@ -203,11 +220,11 @@ INLINE float3 shade_lit(float3 p, float3 n, float3 v, float3 albedo, float3 pack
     // faint sky sheen on wet upward-ish faces
     float fres = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 5.0);
     col += A_SKY_REFL * fres * wet * 0.6;
-    return a_tonemap(a_fog(col, p, l.glow), prm.w);
+    return a_tonemap(a_fog(col, p, l.glow, fogRef), prm.w);
 }
 
 // Ground: puddle map (aux r), ripples, mirror-like streaks.
-INLINE float3 shade_ground_detail(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count, float3 detailNormal, float2 bake) {
+INLINE float3 shade_ground_detail(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count, float3 detailNormal, float2 bake, float3 fogRef) {
     float wet = clamp(prm.x * (0.55 + 0.45 * packed.z), 0.0, 1.0);
     float pud = clamp(puddle * prm.x, 0.0, 1.0);
     float2 rp = a_ripples(float2(p.x, p.z), t) * prm.z;
@@ -230,30 +247,30 @@ INLINE float3 shade_ground_detail(float3 p, float3 v, float3 albedo, float3 pack
     col += streak * (0.06 + 0.94 * fres) * prm.y * (0.2 + 0.8 * max(wet, pud)) * sqrt(ao);
     float3 R = reflect(-v, n);
     col += A_SKY_REFL * clamp(R.y * 2.0, 0.0, 1.0) * fres * (0.3 + 0.7 * pud);
-    return a_tonemap(a_fog(col, p, l.glow), prm.w);
+    return a_tonemap(a_fog(col, p, l.glow, fogRef), prm.w);
 }
 
 // Legacy/decal/desktop callers use an unperturbed normal unless they have maps.
-INLINE float3 shade_ground(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count) {
-    return shade_ground_detail(p, v, albedo, packed, puddle, prm, t, count, float3(0.0, 1.0, 0.0), float2(0.0));
+INLINE float3 shade_ground(float3 p, float3 v, float3 albedo, float3 packed, float puddle, float4 prm, float t, int count, float3 fogRef) {
+    return shade_ground_detail(p, v, albedo, packed, puddle, prm, t, count, float3(0.0, 1.0, 0.0), float2(0.0), fogRef);
 }
 
 // Emissive signage, lanterns, bulbs.  prm: gain, flicker id, scroll, exposure
-INLINE float3 shade_emissive(float3 p, float3 n, float3 v, float3 emit, float4 prm, float t) {
+INLINE float3 shade_emissive(float3 p, float3 n, float3 v, float3 emit, float4 prm, float t, float3 fogRef) {
     float f = a_flicker(prm.y, t, floor(p.x * 3.1 + p.z * 1.7));
     float3 col = emit * prm.x * f;
     // emissive surfaces still sit in the haze
-    return a_tonemap(a_fog(col, p, float3(0.0)), prm.w);
+    return a_tonemap(a_fog(col, p, float3(0.0), fogRef), prm.w);
 }
 
 // Shop windows: interior (already sampled with parallax) behind glass.
-INLINE float3 shade_window(float3 p, float3 n, float3 v, float3 interior, float4 prm, float t, int count) {
+INLINE float3 shade_window(float3 p, float3 n, float3 v, float3 interior, float4 prm, float t, int count, float3 fogRef) {
     float f = a_flicker(prm.z, t, floor(p.z * 2.3));
     float ndv = clamp(dot(n, v), 0.0, 1.0);
     float fres = 0.04 + 0.96 * pow(1.0 - ndv, 5.0);
     ALight l = a_lights(p, n, v, 0.04, 1.4, t, count);
     float3 col = interior * prm.x * f * (1.0 - fres) + (A_SKY_REFL * 1.4 + l.spec) * fres + l.spec * 0.25;
-    return a_tonemap(a_fog(col, p, l.glow), prm.w);
+    return a_tonemap(a_fog(col, p, l.glow, fogRef), prm.w);
 }
 
 // Window interior parallax offset (USD uv units).  T = cross(up, n).
@@ -269,17 +286,17 @@ INLINE float3 shade_sky(float3 c, float4 prm) {
 }
 
 // Rain streak layer: returns rgb in .xyz, alpha in .w
-INLINE float4 shade_rain(float3 p, float streak, float4 prm, float t, int count) {
+INLINE float4 shade_rain(float3 p, float streak, float4 prm, float t, int count, float3 fogRef) {
     ALight l = a_lights(p, float3(0.0, 0.0, 1.0), float3(0.0, 0.0, 1.0), 1.0, 0.0, t, count);
     float3 lit = float3(0.10, 0.12, 0.16) + l.glow * 0.55;
     float hgt = p.y - A_GROUND_Y;
     float fade = smoothstep(0.0, 0.25, hgt) * (1.0 - smoothstep(4.5, 7.0, hgt));
     float a = clamp(streak * prm.z * fade, 0.0, 1.0);
-    float3 col = a_tonemap(a_fog(lit, p, float3(0.0)), prm.w);
+    float3 col = a_tonemap(a_fog(lit, p, float3(0.0), fogRef), prm.w);
     return float4(col, a);
 }
 
-INLINE float4 shade_steam(float3 p, float density, float4 prm, float t, int count) {
+INLINE float4 shade_steam(float3 p, float density, float4 prm, float t, int count, float3 fogRef) {
     float2 c = float2(1.45, -10.4);
     float r = length(float2(p.x, p.z) - c);
     float hgt = p.y - (A_GROUND_Y + 3.35);
@@ -287,7 +304,7 @@ INLINE float4 shade_steam(float3 p, float density, float4 prm, float t, int coun
     ALight l = a_lights(p, float3(0.0, 1.0, 0.0), float3(0.0, 0.0, 1.0), 1.0, 0.0, t, count);
     float3 col = float3(0.08, 0.075, 0.08) + l.glow * 0.4;
     float a = clamp(density * shape * prm.y, 0.0, 1.0);
-    return float4(a_tonemap(a_fog(col, p, float3(0.0)), prm.w), a);
+    return float4(a_tonemap(a_fog(col, p, float3(0.0), fogRef), prm.w), a);
 }
 
 #endif

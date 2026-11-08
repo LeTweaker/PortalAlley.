@@ -190,6 +190,8 @@ final class PortalAssets {
                 }
                 // metallic scale carries the per-pixel light budget (see AlleyShaders.metal)
                 m.metallic = CustomMaterial.Metallic(floatLiteral: Float(tier.lightCount(manifest)) / 16)
+                // roughness scale carries the destination clip code (0 = wall portal, no clip)
+                m.roughness = CustomMaterial.Roughness(floatLiteral: 0)
                 if def.isTransparent {
                     m.blending = .transparent(opacity: .init(floatLiteral: 1.0))
                 }
@@ -211,6 +213,22 @@ final class PortalAssets {
                 if def.isTransparent { u.blending = .transparent(opacity: .init(floatLiteral: 0.4)) }
                 return u
             }
+        }
+    }
+
+    /// Writes the destination clip code (PortalCore DestinationMode.clipCode)
+    /// into every custom material under `root` (the alley).
+    func applyDestinationClip(_ code: Float, under root: Entity) {
+        root.visit { e in
+            guard let me = e as? ModelEntity, var model = me.model else { return }
+            var changed = false
+            model.materials = model.materials.map { mat in
+                guard var c = mat as? CustomMaterial else { return mat }
+                c.roughness = CustomMaterial.Roughness(floatLiteral: code)
+                changed = true
+                return c
+            }
+            if changed { me.model = model }
         }
     }
 

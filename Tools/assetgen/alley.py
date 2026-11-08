@@ -669,6 +669,23 @@ def build(signs_atlas, interiors):
     world.box("metal_dark", (3.45, G + 4.48, -18.75), (3.75, G + 4.62, -18.4), faces="xXYZz", scale=0.5)
     world.quad("lamp_lens", v3(3.47, G + 4.475, -18.73), v3(0.26, 0, 0), v3(0, 0, 0.31), uv0=SA("lamp_led")[:2], uv1=SA("lamp_led")[2:])
 
+    # ============================================================ BACK CAP
+    # Only shown for floor / ceiling portals (chunk "backcap"): a wall-mounted
+    # doorway IS the alley's open end, but looking down or up from the middle
+    # of the alley the user can see back toward it.  0.42 m behind the
+    # doorway plane so recesses and coping keep the occluder invariant.
+    f = Facade(XR - XL, 12.0, "plaster_cream", "front", 2.0)
+    f.door(1.15, 1.0, 2.05, mat="metal_grey", step=False, floor=0.12)
+    f.lamp(1.65, 2.45)
+    f.window(0.35, 3.5, 1.0, 1.1, IA("upper_dark"))
+    f.window(1.85, 3.5, 1.0, 1.1, IA("upper_warm_curtain"))
+    f.ac_unit(0.3, 5.3, pipe_to=3.0)
+    f.shutter_window(1.9, 6.1)
+    f.window(0.35, 8.6, 1.0, 1.1, IA("upper_lamp"))
+    f.pipe(2.95, 0.0, 11.8, r=0.05)
+    f.build_wall()
+    world.merge(f.mb, frame_matrix(v3(-1, 0, 0), v3(0, 1, 0), v3(0, 0, -1), v3(XR, G, -0.42)), chunk="backcap")
+
     # ============================================================ BEYOND
     world.chunk = "distant"
     # B1 behind the ramen shop, T1 further, plus towers
