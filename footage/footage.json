@@ -1,0 +1,48 @@
+[
+ {
+  "title": "File:Heavy rain in early spring in Tokyo.webm",
+  "page": "https://commons.wikimedia.org/wiki/File:Heavy_rain_in_early_spring_in_Tokyo.webm",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Heavy_rain_in_early_spring_in_Tokyo.webm?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "sha1": "1638ef285f15446afdd5e1c8952d515b882bcd72",
+  "licence": "CC BY 4.0",
+  "licenceUrl": "https://creativecommons.org/licenses/by/4.0",
+  "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Fumikas_Sagisavas\" title=\"User:Fumikas Sagisavas\">Fumikas Sagisavas</a>",
+  "credit": "<span class=\"int-own-work\" lang=\"en\">Own work</span>",
+  "date": "2025-03-04 20:05:13",
+  "description": "Heavy rain in early spring in Tokyo",
+  "transcode": "Heavy_rain_in_early_spring_in_Tokyo.mp4",
+  "probe": {
+   "programs": [],
+   "streams": [
+    {
+     "codec_name": "h264",
+     "width": 1280,
+     "height": 720,
+     "r_frame_rate": "59/1"
+    },
+    {
+     "codec_name": "aac",
+     "r_frame_rate": "0/0"
+    }
+   ],
+   "format": {
+    "duration": "10.431000"
+   }
+  }
+ },
+ {
+  "title": "File:First nights in Tokyo.webm",
+  "page": "https://commons.wikimedia.org/wiki/File:First_nights_in_Tokyo.webm",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/7/79/First_nights_in_Tokyo.webm?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "sha1": "99e678bc79490f00e0d0940064291a385e66405b",
+  "licence": "CC BY 3.0",
+  "licenceUrl": "https://creativecommons.org/licenses/by/3.0",
+  "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://vimeo.com/guillaumelauzier\">Guillaume J. Lauzier</a>",
+  "credit": "<a href=\"//commons.wikimedia.org/wiki/Category:Vimeo\" title=\"Category:Vimeo\">Vimeo</a>: <a rel=\"nofollow\" class=\"external text\" data-mw-original-href=\"//vimeo.com/39495561\" href=\"https://vimeo.com/39495561\">First nights in Tokyo</a> (<a rel=\"nofollow\" class=\"external text\" href=\"//web.archive.org/web/*/https://vimeo.com/39495561\"><span style=\"color:#9602fc\">view archived source</span></a>)",
+  "date": "2012-03-30",
+  "description": "<i>First nights in Tokyo</i> was a trip I made in Japan during winter 2012. I had the chance to get unique shots of Shibuya covered in snow and experience Tokyo's exceptional nightlife for the first time. \n<p>The video covers a little of every popular places in Tokyo including a very nice bar called the Quest in roppongi. You will see timelapses seen from the mono rail starting in Odaiba ending in Shiodome, the Tokyo tower and Roppongi streets, Omotesando and Harajuku fashion shopping district with the prada building, Asaskusa's incredible temples and much more. Enjoy the trip as much as I did!\nFilmed and edited by\nGuillaume J. Lauzier\nguillaumelauzier.com\nSoundtrack by\nThe Subs - Don't Stop (Autoerotique remix)\nLocations\nTokyo, Roppongi, Shibuya, Shinjuku, Ueno, Asakusa, Omote-sando, Odaiba, Yokohama, Narita, Ginza, Ebisu, Harajuku, Akihabara, Meguro, Daimon, Kamiyacho, Shimbashi, Ikebukuro, Shiodome.\nShot on\n</p>\nCanon 5d MkII",
+  "seconds": 322.618,
+  "transcode": null,
+  "probe": null
+ }
+]
