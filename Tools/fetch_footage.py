@@ -30,8 +30,18 @@ for title in FILES:
     sha1 = hashlib.sha1(src.read_bytes()).hexdigest()
     assert sha1 == ii["sha1"], "checksum mismatch"
     (OUT / f"{stem}_frames").mkdir(exist_ok=True)
-    subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(src), "-vf", "fps=1/2,scale=480:-2",
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(src), "-vf", "fps=1/4,scale=480:-2",
                     str(OUT / f"{stem}_frames" / "f%04d.jpg")], check=True)
+    dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(src)],
+                               capture_output=True, text=True).stdout.strip() or 0)
+    if dur > 60:
+        # long clips: review frames only; a segment is cut once one is chosen
+        records.append(dict(title=title, page=ii["descriptionurl"], url=ii["url"], sha1=sha1, licence=lic,
+                            licenceUrl=em.get("LicenseUrl"), artist=em.get("Artist"), credit=em.get("Credit"),
+                            date=em.get("DateTimeOriginal"), description=em.get("ImageDescription"), seconds=dur,
+                            transcode=None, probe=None))
+        src.unlink()
+        continue
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(src), "-c:v", "libx264", "-preset", "slow",
                     "-crf", "22", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-c:a", "aac", "-b:a", "128k",
                     str(OUT / f"{stem}.mp4")], check=True)
