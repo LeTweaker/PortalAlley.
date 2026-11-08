@@ -6,7 +6,10 @@ alley (London, used as the proof scene until a Tokyo capture is fetched), with a
 showing genuine licensed Tokyo rain footage. The v1.3 illustrated Tokyo alley remains as a fallback. ARKit 6-DoF world
 tracking, RealityKit rendering, custom Metal surface shaders, bundled assets, no network.
 
-**Status (1.4.0):** see [docs/V1_4.md](docs/V1_4.md) for the architecture, sources and limitations.
+**Status (1.4.0):**
+- Compiles and packages on GitHub Actions into an unsigned IPA (57 MB).
+- 118 PortalCore unit tests pass on CI.
+- Not run on an iPhone yet. Architecture, sources and limitations: [docs/V1_4.md](docs/V1_4.md).
 
 **Status (1.3.0):**
 - Compiles and packages on GitHub Actions (macOS runner) into an unsigned IPA.

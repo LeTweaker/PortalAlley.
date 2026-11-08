@@ -63,7 +63,10 @@ jobs:
           APP=build/Build/Products/Release-iphoneos/PortalAlley.app
           test -f "$APP/default.metallib" && echo "metallib OK"
           test -f "$APP/Portal/manifest.json" && echo "assets OK"
-          xcrun metal-nm "$APP/default.metallib" 2>/dev/null | grep -E "alley|portal|contact|floor|preview" || true
+          test -f "$APP/Portal/video/tokyo_heavy_rain.mp4" && echo "cinematic footage OK"
+          test -f "$APP/Portal/meshes/capture_woolwich.pmsh" && test -f "$APP/Portal/meshes/capture_woolwich_low.pmsh" && echo "capture LODs OK"
+          xcrun metal-nm "$APP/default.metallib" 2>/dev/null | grep -E "alley|portal|contact|floor|preview|capture" || true
+          xcrun metal-nm "$APP/default.metallib" 2>/dev/null | grep -q captureUnlit && echo "capture shaders OK"
           du -sh "$APP"
       - name: Package IPA
         run: |
