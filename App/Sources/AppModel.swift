@@ -17,6 +17,26 @@ final class AppModel: ObservableObject {
     @Published var assetsReady = false
     @Published var insideView = false
 
+    // Easy Mode placement (v1.2.2)
+    @Published var easyMode = true
+    @Published var canCreate = false
+    @Published var placementMethod = ""
+    @Published var placementHint: String?
+    @Published var portalOffscreen = false
+    @Published var findArrowAngle: Double = 0
+    @Published var confirmation: String?
+    private var confirmationTask: Task<Void, Never>?
+
+    func showConfirmation(_ text: String) {
+        confirmation = text
+        confirmationTask?.cancel()
+        confirmationTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.confirmation = nil
+        }
+    }
+
     // developer settings
     @Published var tier: QualityTier = .deviceDefault
     @Published var lidarSupported = false
@@ -39,6 +59,10 @@ final class AppModel: ObservableObject {
     // MARK: intents
     func start() { controller?.start() }
     func restartScan() { controller?.restartScan() }
+    func createPortal() { controller?.createPortal() }
+    func movePortal() { controller?.movePortal() }
+    func findPortal() { controller?.findPortal() }
+    func setEasyMode(_ on: Bool) { controller?.setEasyMode(on) }
     func confirm() { controller?.confirm() }
     func back() { controller?.back() }
     func reposition() { controller?.reposition() }
