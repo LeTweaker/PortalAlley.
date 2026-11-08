@@ -31,14 +31,21 @@ final class DestinationTests: XCTestCase {
             let scene = d.scene(id: id)
             for mode in [DestinationMode.floor, .ceiling] {
                 let w = mode.worldTransform(dims: dims, scene: scene)
-                let p = w * SIMD4(scene.aperture(mode), 1)
+                let p: SIMD4<Float> = simd_mul(w, SIMD4<Float>(scene.aperture(mode), 1))
                 XCTAssertEqual(p.y, (dims.openY0 + dims.openY1) / 2, accuracy: 1e-4, id)
                 XCTAssertEqual(p.z, dims.occluderZ, accuracy: 1e-4, id)
                 // composed with any floor/ceiling pose the destination's up is world up
-                let pose = mode == .floor
-                    ? PortalPose.make(.floor, point: SIMD3(0, 0, -2), normal: SIMD3(0, 1, 0), camera: SIMD3(0, 1.5, 0), cameraForward: SIMD3(0, 0, -1), floorY: nil)!
-                    : PortalPose.make(.ceiling, point: SIMD3(0, 2.6, -1), normal: SIMD3(0, -1, 0), camera: SIMD3(0, 1.5, 0), cameraForward: SIMD3(0, 0, -1), floorY: nil)!
-                XCTAssertEqual((pose * w * SIMD4<Float>(0, 1, 0, 0)).y, 1, accuracy: 1e-5, id)
+                let pose: simd_float4x4
+                if mode == .floor {
+                    pose = try XCTUnwrap(PortalPose.make(.floor, point: SIMD3<Float>(0, 0, -2), normal: SIMD3<Float>(0, 1, 0),
+                                                         camera: SIMD3<Float>(0, 1.5, 0), cameraForward: SIMD3<Float>(0, 0, -1), floorY: nil))
+                } else {
+                    pose = try XCTUnwrap(PortalPose.make(.ceiling, point: SIMD3<Float>(0, 2.6, -1), normal: SIMD3<Float>(0, -1, 0),
+                                                         camera: SIMD3<Float>(0, 1.5, 0), cameraForward: SIMD3<Float>(0, 0, -1), floorY: nil))
+                }
+                let composed: simd_float4x4 = simd_mul(pose, w)
+                let up: SIMD4<Float> = simd_mul(composed, SIMD4<Float>(0, 1, 0, 0))
+                XCTAssertEqual(up.y, 1, accuracy: 1e-5, id)
                 XCTAssertTrue(DestinationMode.keeps(alleyY: scene.aperture(mode).y + (mode == .floor ? -0.5 : 0.5), code: mode.clipCode(scene: scene)))
             }
         }
@@ -99,10 +106,22 @@ final class DestinationTests: XCTestCase {
             // metric sanity: the captured ground near the opening is at the room floor,
             // and the alley 3-8 m in is a narrow walkable passage (0.8-4 m wide)
             let cap = parts.filter { $0.chunk == "capture" }
-            let ground = cap.flatMap { p in zip(p.positions, p.normals).filter { $0.1.y > 0.9 && $0.0.z < -1 && $0.0.z > -4 && abs($0.0.x) < 0.5 }.map(\.0.y) }.sorted()
-            XCTAssertGreaterThan(ground.count, 30)
+            var ground: [Float] = []
+            var walk: [Float] = []
+            for p in cap {
+                for i in 0..<min(p.positions.count, p.normals.count) {
+                    let q: SIMD3<Float> = p.positions[i]
+                    guard p.normals[i].y > 0.9 else { continue }
+                    if q.z < -1 && q.z > -4 && abs(q.x) < 0.5 { ground.append(q.y) }
+                    if q.z < -3 && q.z > -8 && abs(q.y) < 0.3 { walk.append(q.x) }
+                }
+            }
+            ground.sort()
+            walk.sort()
+            guard ground.count > 30, walk.count > 30 else {
+                XCTFail("\(name): too few ground samples (\(ground.count), \(walk.count))"); continue
+            }
             XCTAssertEqual(ground[ground.count / 2], 0, accuracy: 0.15, "\(name): ground height")
-            let walk = cap.flatMap { p in zip(p.positions, p.normals).filter { $0.1.y > 0.9 && $0.0.z < -3 && $0.0.z > -8 && abs($0.0.y) < 0.3 }.map(\.0.x) }.sorted()
             let width = walk[walk.count * 95 / 100] - walk[walk.count * 5 / 100]
             XCTAssertTrue((0.8...4.0).contains(width), "\(name): passage width \(width) m")
         }
