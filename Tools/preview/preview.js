@@ -25,6 +25,7 @@
   const OPEN = Q.has("open") ? Number(Q.get("open")) : 1.0;
   const ROOM = Q.get("room") !== "0";
   const NO_OCC = Q.get("noOccluder") === "1";
+  const NO_BAKE = Q.get("noBake") === "1";   // simulate the iOS 17 path (no uv1)
   const W = Number(Q.get("w") || 540), H = Number(Q.get("h") || 1170);
   const BASE = "../../";
   const status = (s) => { document.getElementById("status").textContent = s; };
@@ -75,15 +76,19 @@
     let o = 0;
     const magic = td.decode(new Uint8Array(buf, 0, 4)); o = 4;
     if (magic !== "PMSH") throw new Error("bad mesh");
-    o += 4; const n = dv.getUint32(o, true); o += 4;
+    const version = dv.getUint32(o, true); o += 4; const n = dv.getUint32(o, true); o += 4;
     const parts = [];
     for (let i = 0; i < n; i++) {
       const nl = dv.getUint16(o, true); o += 2; const name = td.decode(new Uint8Array(buf, o, nl)); o += nl;
       const ml = dv.getUint16(o, true); o += 2; const mat = td.decode(new Uint8Array(buf, o, ml)); o += ml;
       const vc = dv.getUint32(o, true); o += 4; const ic = dv.getUint32(o, true); o += 4;
+      let flags = 0; if (version >= 2) { flags = dv.getUint32(o, true); o += 4; }
       const take = (count, T, bytes) => { const a = new T(buf.slice(o, o + count * bytes)); o += count * bytes; return a; };
-      const pos = take(vc * 3, Float32Array, 4), nrm = take(vc * 3, Float32Array, 4), uv = take(vc * 2, Float32Array, 4), idx = take(ic, Uint32Array, 4);
-      parts.push({ name, mat, pos, nrm, uv, idx });
+      const pos = take(vc * 3, Float32Array, 4), nrm = take(vc * 3, Float32Array, 4), uv = take(vc * 2, Float32Array, 4);
+      // no baked lighting: (0,0) = "absent", like a RealityKit mesh without uv1
+      const uv1 = (flags & 1) && !NO_BAKE ? take(vc * 2, Float32Array, 4) : ((flags & 1) ? (take(vc * 2, Float32Array, 4), new Float32Array(vc * 2)) : new Float32Array(vc * 2));
+      const idx = take(ic, Uint32Array, 4);
+      parts.push({ name, mat, pos, nrm, uv, uv1, idx });
     }
     return parts;
   }
@@ -113,10 +118,10 @@
 
   // ---------------------------------------------------------------- shaders
   const VS = `#version 300 es
-  in vec3 aPos; in vec3 aNrm; in vec2 aUV;
+  in vec3 aPos; in vec3 aNrm; in vec2 aUV; in vec2 aUV1;
   uniform mat4 uVP;
-  out vec3 vPos; out vec3 vNrm; out vec2 vUV;
-  void main(){ vPos = aPos; vNrm = aNrm; vUV = aUV; gl_Position = uVP * vec4(aPos,1.0); }`;
+  out vec3 vPos; out vec3 vNrm; out vec2 vUV; out vec2 vUV1;
+  void main(){ vPos = aPos; vNrm = aNrm; vUV = aUV; vUV1 = aUV1; gl_Position = uVP * vec4(aPos,1.0); }`;
 
   const PRE = `#version 300 es
   precision highp float; precision highp int;
@@ -126,22 +131,37 @@
   #define INLINE
   `;
   const COMMON = `
-  uniform sampler2D uBase; uniform sampler2D uCustom; uniform sampler2D uAux;
+  uniform sampler2D uBase; uniform sampler2D uCustom; uniform sampler2D uAux; uniform sampler2D uNormal; uniform int uHasNormal;
   uniform vec3 uTint; uniform vec4 uPrm; uniform float uTime; uniform int uLightCount; uniform vec3 uCam;
-  in vec3 vPos; in vec3 vNrm; in vec2 vUV;
+  in vec3 vPos; in vec3 vNrm; in vec2 vUV; in vec2 vUV1;
   out vec4 frag;
   vec2 usd_uv(vec2 uv){ return vec2(uv.x, 1.0 - uv.y); }
   vec3 to_srgb(vec3 c){ c = clamp(c, 0.0, 1.0); return mix(c*12.92, 1.055*pow(c, vec3(1.0/2.4)) - 0.055, step(vec3(0.0031308), c)); }
   vec3 V(){ return normalize(uCam - vPos); }
+  // same derivative cotangent frame as photographic_normal() in AlleyShaders.metal
+  vec3 photo_normal(vec3 p, vec3 n, vec2 uv){
+    if(uHasNormal==0) return n;
+    vec3 dp1=dFdx(p), dp2=dFdy(p); vec2 duv1=dFdx(uv), duv2=dFdy(uv);
+    vec3 a=cross(dp2,n), b=cross(n,dp1);
+    vec3 T=a*duv1.x+b*duv2.x, B=a*duv1.y+b*duv2.y;
+    float sc=inversesqrt(max(max(dot(T,T),dot(B,B)),1e-10));
+    vec3 d=texture(uNormal,uv).rgb*2.0-1.0; d.xy*=0.7;
+    return normalize(T*sc*d.x+B*sc*d.y+n*d.z);
+  }
+  vec3 lit_color(out float alpha){ vec3 v=V(); vec3 n=normalize(vNrm); if(dot(n,v)<0.0) n=-n;
+    vec2 uv=usd_uv(vUV)*(uPrm.z>0.0?uPrm.z:1.0);
+    vec4 base=texture(uBase,uv); alpha=base.a; vec3 alb=base.rgb*uTint; vec3 pk=texture(uCustom,uv).rgb;
+    n=photo_normal(vPos,n,uv);
+    return shade_lit(vPos,n,v,alb,pk,uPrm,uTime,uLightCount,vUV1); }
   `;
   const ENTRY = {
-    alleyLit: `void main(){ vec3 v=V(); vec3 n=normalize(vNrm); if(dot(n,v)<0.0) n=-n; vec2 uv=usd_uv(vUV);
-      vec3 alb=texture(uBase,uv).rgb*uTint; vec3 pk=texture(uCustom,uv).rgb;
-      frag=vec4(to_srgb(shade_lit(vPos,n,v,alb,pk,uPrm,uTime,uLightCount)),1.0);} `,
+    alleyLit: `void main(){ float a; frag=vec4(to_srgb(lit_color(a)),1.0);} `,
+    alleyLitCutout: `void main(){ float a; vec3 c=lit_color(a); if(a<0.5) discard; frag=vec4(to_srgb(c),1.0);} `,
     alleyGround: `void main(){ vec3 v=V(); vec2 uv=usd_uv(vUV);
       vec3 alb=texture(uBase,uv).rgb*uTint; vec3 pk=texture(uCustom,uv).rgb;
       float pud=texture(uAux, vec2((vPos.x+9.0)/24.0, -vPos.z/24.0)).r;
-      frag=vec4(to_srgb(shade_ground(vPos,v,alb,pk,pud,uPrm,uTime,uLightCount)),1.0);} `,
+      vec3 dn=photo_normal(vPos,vec3(0.0,1.0,0.0),uv);
+      frag=vec4(to_srgb(shade_ground_detail(vPos,v,alb,pk,pud,uPrm,uTime,uLightCount,dn,vUV1)),1.0);} `,
     alleyDecal: `void main(){ vec3 v=V(); vec2 uv=usd_uv(vUV); vec4 paint=texture(uBase,uv);
       float pud=texture(uAux, vec2((vPos.x+9.0)/24.0, -vPos.z/24.0)).r;
       vec3 c=shade_ground(vPos,v,paint.rgb*uTint,vec3(0.35,1.0,0.6),pud*0.6,vec4(uPrm.x,uPrm.y,0.6,uPrm.w),uTime,uLightCount);
@@ -203,7 +223,7 @@
     for (const [name, body] of Object.entries(ENTRY)) {
       const fs = compile(gl.FRAGMENT_SHADER, PRE + lightsGLSL.replace(/^\/\/.*$/gm, "") + "\n" + core + COMMON + body);
       const p = gl.createProgram(); gl.attachShader(p, vs); gl.attachShader(p, fs);
-      gl.bindAttribLocation(p, 0, "aPos"); gl.bindAttribLocation(p, 1, "aNrm"); gl.bindAttribLocation(p, 2, "aUV");
+      gl.bindAttribLocation(p, 0, "aPos"); gl.bindAttribLocation(p, 1, "aNrm"); gl.bindAttribLocation(p, 2, "aUV"); gl.bindAttribLocation(p, 3, "aUV1");
       gl.linkProgram(p);
       if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error("link " + name + ": " + gl.getProgramInfoLog(p));
       const u = {};
@@ -223,7 +243,7 @@
     function upload(part) {
       const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
       const mk = (data, loc, size) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0); };
-      mk(part.pos, 0, 3); mk(part.nrm, 1, 3); mk(part.uv, 2, 2);
+      mk(part.pos, 0, 3); mk(part.nrm, 1, 3); mk(part.uv, 2, 2); mk(part.uv1 || new Float32Array(part.pos.length / 3 * 2), 3, 2);
       const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, part.idx, gl.STATIC_DRAW);
       gl.bindVertexArray(null);
       let cx = 0, cy = 0, cz = 0; const n = part.pos.length / 3;
@@ -264,7 +284,8 @@
       if (pr.u.uPrm) gl.uniform4fv(pr.u.uPrm, mat.params || [0, 0, 0, 1]);
       const t = mat.textures || {};
       const bind = (unit, name, uname) => { if (!pr.u[uname]) return; gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex[name] || tex.white); gl.uniform1i(pr.u[uname], unit); };
-      bind(0, t.baseColor, "uBase"); bind(1, t.custom || t.roughness, "uCustom"); bind(2, t.emissiveColor, "uAux");
+      bind(0, t.baseColor, "uBase"); bind(1, t.custom || t.roughness, "uCustom"); bind(2, t.emissiveColor, "uAux"); bind(3, t.normal, "uNormal");
+      if (pr.u.uHasNormal) gl.uniform1i(pr.u.uHasNormal, t.normal ? 1 : 0);
       if (mat.shader === "pbr") {
         gl.uniform1f(pr.u.uMetal, mat.metallic ?? 0); gl.uniform1f(pr.u.uRough, mat.roughness ?? 0.5);
         gl.uniform1i(pr.u.uHasTex, t.baseColor ? 1 : 0);
@@ -329,6 +350,7 @@
       if (!mat || transparentShaders.has(mat.shader) || mat.shader === "occlusion") continue;
       const pr = progs[mat.shader];
       if (!pr) continue;
+      if (mat.cull === "none") gl.disable(gl.CULL_FACE); else gl.enable(gl.CULL_FACE);
       setCommon(pr, mat); draw(p); drawn++;
     }
 

@@ -70,21 +70,41 @@ static float3 photographic_normal(thread realitykit::surface_parameters &params,
 
 // ------------------------------------------------------------------ alley
 
-[[visible]]
-void alleyLit(realitykit::surface_parameters params)
+// prm.x wet, prm.y spec, prm.z UV multiplier (0 = 1: scans at photographed size), prm.w exposure
+static float3 alley_lit_color(thread realitykit::surface_parameters &params, thread float &alpha)
 {
     PortalSpace s = portal_space(params);
-    float2 uv = usd_uv(params.geometry().uv0());
+    float4 prm = params.uniforms().custom_parameter();
+    float2 uv = usd_uv(params.geometry().uv0()) * (prm.z > 0.0 ? prm.z : 1.0);
     auto tex = params.textures();
     float3 tint = float3(params.material_constants().base_color_tint());
-    float3 alb = float3(tex.base_color().sample(kRepeat, uv).rgb) * tint;
+    float4 base = float4(tex.base_color().sample(kRepeat, uv));
+    alpha = base.a;
+    float3 alb = base.rgb * tint;
     float3 pk = float3(tex.custom().sample(kRepeat, uv).rgb);
-    float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     // geometry is two-sided in a few places (awnings, noren): face the viewer
     float3 n = dot(s.n, s.v) < 0.0 ? -s.n : s.n;
     n = photographic_normal(params, s.p, n, uv);
-    EMIT(shade_lit(s.p, n, s.v, alb, pk, prm, t, light_count(params)));
+    return shade_lit(s.p, n, s.v, alb, pk, prm, t, light_count(params), float2(params.geometry().uv1()));
+}
+
+[[visible]]
+void alleyLit(realitykit::surface_parameters params)
+{
+    float a;
+    EMIT(alley_lit_color(params, a));
+}
+
+// Alpha-masked scans (AC grilles): opacity from base colour alpha; the
+// material sets opacityThreshold so masked texels are discarded, not blended.
+[[visible]]
+void alleyLitCutout(realitykit::surface_parameters params)
+{
+    float a;
+    float3 c = alley_lit_color(params, a);
+    EMIT(c);
+    params.surface().set_opacity(half(a));
 }
 
 [[visible]]
@@ -101,7 +121,7 @@ void alleyGround(realitykit::surface_parameters params)
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
     float3 detail = photographic_normal(params, s.p, float3(0, 1, 0), uv);
-    EMIT(shade_ground_detail(s.p, s.v, alb, pk, pud, prm, t, light_count(params), detail));
+    EMIT(shade_ground_detail(s.p, s.v, alb, pk, pud, prm, t, light_count(params), detail, float2(params.geometry().uv1())));
 }
 
 [[visible]]

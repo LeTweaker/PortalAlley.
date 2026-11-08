@@ -21,6 +21,7 @@ import math
 import numpy as np
 
 from meshkit import MeshBuilder, v3, norm
+import props
 
 G = -0.12          # asphalt level
 XL = -1.45         # left facade plane
@@ -154,27 +155,44 @@ class Facade:
         mb.quad(mat, v3(s0, h0, proud + 0.003), v3(s1 - s0, 0, 0), v3(0, h1 - h0, 0), uv0=(u0, v0), uv1=(u1, v1))
 
     def ac_unit(self, s, h, w=0.78, hh=0.56, dep=0.28, pipe_to=None):
+        """Scanned outdoor AC unit (Poly Haven, CC0) on its wall bracket.
+        s = left edge of the body, h = underside of the body."""
         mb = self.mb
-        mb.bevel_box("metal_white", (s, h, 0.06), (s + w, h + hh, 0.06 + dep), 0.02, scale=1.0)
-        # fan grille: dark disc + concentric ring bars
-        cx, cy, z = s + w * 0.40, h + hh / 2, 0.06 + dep + 0.004
-        pts = [v3(cx + math.cos(a) * hh * 0.38, cy + math.sin(a) * hh * 0.38, z) for a in np.linspace(0, 2 * math.pi, 24, endpoint=False)]
-        mb.polygon_cap("metal_dark", pts, v3(0, 0, 1))
-        for rr in (0.12, 0.2):
-            ring = [v3(cx + math.cos(a) * rr, cy + math.sin(a) * rr, z + 0.004) for a in np.linspace(0, 2 * math.pi, 17)]
-            mb.tube("metal_white", ring, 0.004, segs=4)
-        for k in range(5):
-            y = h + hh * (0.25 + 0.12 * k)
-            mb.box("metal_grey", (s + w * 0.74, y, 0.06 + dep), (s + w * 0.94, y + 0.012, 0.06 + dep + 0.006), faces="yYZ", scale=0.3)
-        # brackets
-        for bx in (s + 0.08, s + w - 0.1):
-            mb.box("metal_dark", (bx, h - 0.04, 0), (bx + 0.03, h, 0.06 + dep), faces="xXYZ", scale=0.3)
-        # pipe cover duct down the wall
+        item = "aircon_rusted" if int(round(s * 7 + h * 3)) % 3 == 0 else "aircon"
+        props.place(mb, item, (s + 0.40, h, 0.0), anchor="back")
+        # pipe cover duct down the wall (white PVC trunking, typical in Japan)
         if pipe_to is not None:
             px = s + w + 0.05
             top = h + hh * 0.5
             mb.box("metal_white", (px, min(pipe_to, top), 0.0), (px + 0.09, max(pipe_to, top), 0.07), faces="xXyYZ", scale=0.5)
-            mb.box("metal_white", (s + w, top - 0.04, 0.0), (px + 0.09, top + 0.04, 0.07), faces="yYZ", scale=0.5)
+            mb.box("metal_white", (s + w - 0.02, top - 0.04, 0.0), (px + 0.09, top + 0.04, 0.07), faces="yYZ", scale=0.5)
+
+    def shutter_window(self, s, h, graffiti=False):
+        """Surface-mounted window with a closed roller shutter (scan)."""
+        props.place(self.mb, "shutter_window", (s + 0.49, h, 0.0), anchor="back")
+
+    def security_light(self, s, h):
+        props.place(self.mb, "security_light", (s, h, 0.0), anchor="back")
+
+    def camera(self, s, h):
+        props.place(self.mb, "camera", (s, h, 0.0), anchor="back", rot_y=0.0)
+
+    def fluorescent(self, s, h, d):
+        """Bare tube fitting hanging from a soffit at height h, d out from the wall."""
+        props.place(self.mb, "fluorescent", (s, h, d), anchor="none")
+
+    def utility_box(self, s, which=1, d=0.02):
+        props.place(self.mb, f"utility_box_{which}", (s, 0.0, d), anchor="back_bottom")
+
+    def duct_run(self, s, h0, h1, d=0.0):
+        """Vertical circular exhaust duct (scan): 1.42 m sections held off the
+        wall by strap braces (brace bar on the wall, duct axis 0.49 m out)."""
+        dc = d + 0.50
+        y = h0
+        while y < h1 - 0.2:
+            props.place(self.mb, "duct_triple", (s, y, dc), rot_x=-90.0, anchor="none")
+            props.place(self.mb, "duct_brace", (s, y + 0.71, dc), rot_x=-90.0, anchor="none")
+            y += 1.42
 
     def pipe(self, s, h0, h1, r=0.045, mat="metal_grey", d=0.07):
         self.mb.cylinder(mat, v3(s, h0, d), v3(s, h1, d), r, segs=10, caps=False)
@@ -274,6 +292,8 @@ def build(signs_atlas, interiors):
     f.window(1.9, 6.6, 1.0, 1.15, IA("upper_warm_curtain"))
     f.ac_unit(0.6, 5.7)
     f.flat_sign(2.55, 2.89, 1.25, 1.42, SA("poster_0"), mat="sign_soft", proud=0.004, frame_mat="metal_white")
+    f.fluorescent(1.8, 2.42, 0.10)
+    f.camera(2.75, 2.55)
     f.build_wall()
     place(f, M_left(-0.13), "near")
 
@@ -347,7 +367,7 @@ def build(signs_atlas, interiors):
     # side passage between L3 and L4 (z -13.0 .. -13.9): dim red light deep inside
     world.chunk = "far"
     world.wquad("plaster_rust", v3(-6.0, G, -13.9), v3(4.55, 0, 0), v3(0, 9.0, 0), scale=(2.0, 2.0))     # faces +z
-    world.wquad("concrete_dark", v3(-6.0, G, -13.0), v3(0, 0, -0.9), v3(0, 7.0, 0), scale=(3.0, 3.0))   # end wall faces +x
+    world.wquad("brick", v3(-6.0, G, -13.0), v3(0, 0, -0.9), v3(0, 7.0, 0), scale=(2.0, 2.0))          # end wall faces +x
     world.wquad("asphalt", v3(-6.0, G, -13.0), v3(4.55, 0, 0), v3(0, 0, -0.9), scale=(4.0, 4.0))
     world.box("concrete_dark", (-6.0, G, -13.02), (XL, G + 13.5, -13.0), faces="z", scale=3.0)         # back of L3 (rarely seen)
     world.box("passage_red", (-5.3, G + 1.9, -13.88), (-4.8, G + 2.02, -13.84), faces="xXyYZ", uv_world=False)
@@ -362,7 +382,7 @@ def build(signs_atlas, interiors):
     f.mb.wquad("shutter", v3(0.3, 0.0, -0.18), v3(2.6, 0, 0), v3(0, 2.5, 0), scale=(1.0, 1.0))
     f.flat_sign(1.3, 1.62, 1.55, 1.71, SA("eigyo"), mat="sign_dim", proud=0.004, frame_mat="metal_white")
     f.window(0.5, 3.4, 1.1, 1.1, IA("upper_lamp"))
-    f.window(2.0, 3.4, 1.1, 1.1, IA("upper_dark"))
+    f.shutter_window(2.0, 3.25)
     f.window(1.2, 6.3, 1.2, 1.1, IA("upper_cool_blinds"))
     f.ac_unit(2.4, 5.4, pipe_to=2.8)
     f.build_wall()
@@ -382,6 +402,7 @@ def build(signs_atlas, interiors):
     f.window(0.7, 6.6, 1.1, 1.1, IA("upper_dark"))
     f.ac_unit(1.1, 5.4, pipe_to=3.2)
     f.flat_sign(1.0, 1.55, 1.15, 1.35, SA("poster_1"), mat="sign_soft", proud=0.004, frame_mat="metal_white")
+    f.security_light(0.35, 2.45)
     f.build_wall()
     place(f, M_right(-2.6), "near")
 
@@ -411,7 +432,10 @@ def build(signs_atlas, interiors):
     # upper floors
     for h in (3.3, 6.0, 8.7):
         f.window(0.4, h, 1.2, 1.2, IA("upper_cool_blinds" if h == 3.3 else ("upper_warm_curtain" if h == 6.0 else "upper_dark")))
-        f.window(2.9, h, 1.2, 1.2, IA("upper_lamp" if h == 6.0 else "upper_dark"))
+        if h == 8.7:
+            f.shutter_window(2.95, h - 0.15)
+        else:
+            f.window(2.9, h, 1.2, 1.2, IA("upper_lamp" if h == 6.0 else "upper_dark"))
     f.ac_unit(1.9, 3.5, pipe_to=2.9)
     f.ac_unit(1.9, 6.3)
     f.ac_unit(1.9, 9.0)
@@ -441,8 +465,8 @@ def build(signs_atlas, interiors):
     m.box("wood_dark", (2.85, 2.18, -0.02), (3.95, 2.22, 0.05), faces="xXyYZ", scale=0.5)
     m.bevel_box("concrete", (2.85, 0.0, -0.05), (3.95, 0.17, 0.28), 0.012, scale=1.0, faces="xXYZ")
     # eave (corrugated metal hisashi)
-    m.quad("shutter", v3(0.0, 2.95, 0.0), v3(4.6, 0, 0), v3(0, -0.28, 0.8), uv0=(0, 0), uv1=(4.6, 0.85))
-    m.quad("metal_dark", v3(4.6, 2.95, 0.0), v3(-4.6, 0, 0), v3(0, -0.28, 0.8), uv0=(0, 0), uv1=(4.6, 0.85))
+    m.quad("corrugated", v3(0.0, 2.95, 0.0), v3(4.6, 0, 0), v3(0, -0.28, 0.8), uv0=(0, 0), uv1=(4.6, 0.85))
+    m.quad("rust_metal", v3(4.6, 2.95, 0.0), v3(-4.6, 0, 0), v3(0, -0.28, 0.8), uv0=(0, 0), uv1=(4.6, 0.85))
     m.box("wood_dark", (0.0, 2.62, 0.78), (4.6, 2.70, 0.84), faces="xXyYZ", scale=1.0)
     f.blade_sign(4.45, 3.0, 5.6, 0.45, 0.12, SA("izakaya_blade"), mat="sign_static")
     # upper floor
@@ -464,8 +488,7 @@ def build(signs_atlas, interiors):
         world.lathe("rubber_black", c + v3(0, -0.32, 0), [(0.0, 0.0), (0.1, 0.0), (0.1, 0.05), (0.0, 0.05)], segs=12)
     # propane cylinders by the izakaya
     for k in range(2):
-        world.lathe("metal_grey", v3(XR - 0.28, G + 0.04, -11.45 + k * 0.38),
-                    [(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.16, 1.0), (0.12, 1.12), (0.05, 1.16), (0.05, 1.24), (0.0, 1.24)], segs=14)
+        props.place(world, "propane", (XR - 0.30, G + 0.04, -11.55 + k * 0.46), rot_y=40.0 + 75.0 * k, scale=1.3, anchor="bottom")
     # steam plume above the vent (two crossed quads)
     sv = v3(XR - 0.2, G + 3.35, -10.4)
     world.quad("steam", sv + v3(-0.45, 0, 0), v3(0.9, 0, 0), v3(0, 1.8, 0), uv0=(0, 0), uv1=(1, 1.6), double=True)
@@ -489,6 +512,8 @@ def build(signs_atlas, interiors):
         f.window(3.2, h, 1.3, 1.25, IA("upper_lamp" if h == 9.2 else "upper_dark"))
         f.ac_unit(2.0, h + 0.2, pipe_to=h - 0.6 if h < 7 else None)
     f.pipe(5.55, 0.0, 13.8, r=0.05)
+    f.utility_box(0.12, which=1)
+    f.fluorescent(5.08, 2.38, 0.10)
     f.build_wall()
     place(f, M_right(-17.5), "far")
 
@@ -551,11 +576,12 @@ def build(signs_atlas, interiors):
         for k in range(4):
             world.box(mat, (cx - 0.22, y0 + 0.06 + k * 0.06, cz - 0.175), (cx + 0.22, y0 + 0.085 + k * 0.06, cz + 0.175), faces="xXZz", scale=0.5)
     # bin with lid (right, ~2 m)
-    world.lathe("crate_blue", v3(1.3, G + 0.04, -2.25), [(0.0, 0.0), (0.2, 0.0), (0.23, 0.62), (0.25, 0.64), (0.25, 0.70), (0.0, 0.72)], segs=16)
+    props.place(world, "trash_can_rust", (1.22, G + 0.04, -2.3), rot_y=-100.0, scale=0.85, anchor="bottom")
     # traffic cone near the junction
     world.chunk = "far"
     world.box("rubber_black", (-0.95, G, -15.95), (-0.55, G + 0.03, -15.55), faces="xXYZz", scale=0.5)
     world.lathe("cone", v3(-0.75, G + 0.03, -15.75), [(0.16, 0.0), (0.13, 0.25), (0.08, 0.5), (0.03, 0.68), (0.0, 0.69)], segs=14)
+    props.place(world, "trash_can", (-1.12, G, -14.45), rot_y=70.0, scale=0.85, anchor="bottom")
 
     # ============================================================ CROSS LANE
     world.chunk = "far"
@@ -583,8 +609,8 @@ def build(signs_atlas, interiors):
     f.window(2.2, 6.4, 1.2, 1.1, IA("upper_cool_blinds"))
     f.ac_unit(0.3, 5.4)
     # eave
-    m.quad("shutter", v3(0.0, 3.35, 0.0), v3(3.9, 0, 0), v3(0, -0.25, 0.7), uv0=(0, 0), uv1=(3.9, 0.75))
-    m.quad("metal_dark", v3(3.9, 3.35, 0.0), v3(-3.9, 0, 0), v3(0, -0.25, 0.7), uv0=(0, 0), uv1=(3.9, 0.75))
+    m.quad("corrugated", v3(0.0, 3.35, 0.0), v3(3.9, 0, 0), v3(0, -0.25, 0.7), uv0=(0, 0), uv1=(3.9, 0.75))
+    m.quad("rust_metal", v3(3.9, 3.35, 0.0), v3(-3.9, 0, 0), v3(0, -0.25, 0.7), uv0=(0, 0), uv1=(3.9, 0.75))
     f.build_wall()
     place(f, M_front(-1.9, Z_FAR), "far")
     lu = SA("lantern_ramen")
@@ -602,8 +628,10 @@ def build(signs_atlas, interiors):
     f.recess(0.6, 5.4, 0.0, 2.6, 0.15)
     f.mb.wquad("shutter", v3(0.6, 0.0, -0.13), v3(4.8, 0, 0), v3(0, 2.6, 0), scale=(1.0, 1.0))
     f.window(1.5, 3.8, 1.2, 1.1, IA("upper_lamp"))
-    f.window(3.8, 3.8, 1.2, 1.1, IA("upper_dark"))
+    f.shutter_window(3.85, 3.6)
     f.ac_unit(3.0, 5.6)
+    f.duct_run(0.75, 2.9, 7.9)
+    f.utility_box(5.35, which=2)
     f.build_wall()
     place(f, M_front(-8.0, Z_FAR), "far")
 

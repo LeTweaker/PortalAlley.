@@ -29,18 +29,16 @@ OUT = ROOT / "Vendor" / "polyhaven"
 UA = "PortalAlley-CC0-Vendor/1.3 (build-time importer; credit: Poly Haven)"
 
 # Photographed surfaces (ids verified on polyhaven.com).  1k JPG maps.
+# Curated after review (v1.3): exactly the surfaces Tools/assetgen/photo.py uses.
 TEXTURES = [
-    "asphalt_02", "concrete_floor_01", "concrete_wall_003",     # v1.2 set
-    "concrete_tile_facade",     # tiled building facade (common in Japan)
-    "red_plaster_weathered", "beige_wall_001", "concrete_wall_008",
-    "concrete_layers", "precast_concrete_wall", "painted_concrete_02",
-    "rusty_metal_03", "rust_coarse_01", "garage_floor", "mixed_brick_wall",
+    "asphalt_02", "garage_floor",                         # street, kerb, stoop
+    "concrete_tile_facade",                               # tiled facades (common in Japan)
+    "concrete_wall_008", "concrete_layers",               # board-formed / layered concrete
+    "painted_concrete_02", "red_plaster_weathered",       # painted mortar, red plaster
+    "corrugated_iron", "black_painted_planks",            # shutters + eaves, dark timber fronts
+    "mixed_brick_wall", "rust_coarse_01",                 # side passage, eave undersides
 ]
-# Optional surfaces discovered by name (first match per pattern).
-TEXTURE_PATTERNS = {
-    "corrugated": r"corrugated",
-    "planks": r"(weathered|old|dark).*plank|plank",
-}
+TEXTURE_PATTERNS: dict[str, str] = {}
 # Scanned / photographed props from "The Hidden Alley" and related CC0 sets.
 MODELS_REQUIRED = ["Exterior Aircon Unit", "Utility Box 01", "Utility Box 02", "Metal Trash Can"]
 MODELS_OPTIONAL = ["Propane Tank", "Security Light", "Mounted Fluorescent Lights",

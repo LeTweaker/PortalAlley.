@@ -2,19 +2,32 @@ import Foundation
 
 /// Parser for the .pmsh mesh packs written by Tools/assetgen/meshkit.py.
 ///
-///     char[4] 'PMSH', u32 version, u32 partCount
+///     char[4] 'PMSH', u32 version (1 or 2), u32 partCount
 ///     per part: u16 len + utf8 chunk name, u16 len + utf8 material,
 ///               u32 vertexCount, u32 indexCount,
-///               f32[3n] positions, f32[3n] normals, f32[2n] uvs, u32[m] indices
+///               u32 flags (version 2 only; bit 0 = uv1 present),
+///               f32[3n] positions, f32[3n] normals, f32[2n] uvs,
+///               f32[2n] uv1 (if flagged), u32[m] indices
+///
+/// uv1 carries baked lighting (Tools/assetgen/bake.py): x = 3 - ambient
+/// occlusion (2...3), y = 1 - visibility of the authored lights (0...1).
 public struct MeshPart: Sendable {
     public var chunk: String
     public var material: String
     public var positions: [SIMD3<Float>]
     public var normals: [SIMD3<Float>]
     public var uvs: [SIMD2<Float>]
+    /// Baked ambient occlusion / light visibility (nil when not baked).
+    public var uv1: [SIMD2<Float>]? = nil
     public var indices: [UInt32]
 
     public var triangleCount: Int { indices.count / 3 }
+
+    /// Decoded baked lighting at a vertex: (ao, visibility), or nil.
+    public func bakedLighting(at i: Int) -> SIMD2<Float>? {
+        guard let uv1, i < uv1.count, uv1[i].x > 1.5 else { return nil }
+        return SIMD2(3 - uv1[i].x, 1 - uv1[i].y)
+    }
 }
 
 public enum MeshPackError: Error, Equatable {
@@ -26,7 +39,7 @@ public enum MeshPack {
         var r = Reader(data: data)
         guard try r.bytes(4) == Array("PMSH".utf8) else { throw MeshPackError.badMagic }
         let version: UInt32 = try r.scalar()
-        guard version == 1 else { throw MeshPackError.unsupportedVersion(version) }
+        guard version == 1 || version == 2 else { throw MeshPackError.unsupportedVersion(version) }
         let count: UInt32 = try r.scalar()
         var parts: [MeshPart] = []
         parts.reserveCapacity(Int(count))
@@ -35,9 +48,11 @@ public enum MeshPack {
             let mat = try r.string()
             let vc = Int(try r.scalar() as UInt32)
             let ic = Int(try r.scalar() as UInt32)
+            let flags: UInt32 = version >= 2 ? try r.scalar() : 0
             let p: [Float] = try r.array(vc * 3)
             let n: [Float] = try r.array(vc * 3)
             let t: [Float] = try r.array(vc * 2)
+            let t1: [Float]? = flags & 1 != 0 ? try r.array(vc * 2) : nil
             let idx: [UInt32] = try r.array(ic)
             if let m = idx.max(), Int(m) >= vc { throw MeshPackError.indexOutOfRange("\(chunk)/\(mat)") }
             var pos = [SIMD3<Float>](); pos.reserveCapacity(vc)
@@ -48,7 +63,11 @@ public enum MeshPack {
                 nrm.append(SIMD3(n[3 * i], n[3 * i + 1], n[3 * i + 2]))
                 uv.append(SIMD2(t[2 * i], t[2 * i + 1]))
             }
-            parts.append(MeshPart(chunk: chunk, material: mat, positions: pos, normals: nrm, uvs: uv, indices: idx))
+            var uv1: [SIMD2<Float>]? = nil
+            if let t1 {
+                uv1 = (0..<vc).map { SIMD2(t1[2 * $0], t1[2 * $0 + 1]) }
+            }
+            parts.append(MeshPart(chunk: chunk, material: mat, positions: pos, normals: nrm, uvs: uv, uv1: uv1, indices: idx))
         }
         return parts
     }

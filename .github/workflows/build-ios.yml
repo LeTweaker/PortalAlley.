@@ -45,18 +45,10 @@ jobs:
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: actions/cache@v4
-        with:
-          path: .material-cache
-          key: photographic-materials-v1-${{ hashFiles('Tools/import_photographic_materials.py') }}
-      - name: Import photographed CC0 surface materials
-        run: |
-          python -m pip install Pillow==11.3.0
-          python Tools/import_photographic_materials.py
-      - name: Validate the imported resources with the shipped asset tests
+      - name: Validate the bundled resources with the shipped asset tests
+        # Photographed surfaces, scanned props and baked lighting are built
+        # offline from Vendor/polyhaven (CC0) by Tools/assetgen and committed;
+        # the CI build makes no network requests for assets.
         run: swift test --package-path PortalCore --filter ShippedAssetTests
       - name: Build (Release, device, unsigned)
         run: |
@@ -88,9 +80,3 @@ jobs:
         with:
           name: build-log
           path: build.log
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: material-source-report
-          path: docs/generated_material_report.json
-

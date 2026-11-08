@@ -102,7 +102,7 @@ private struct StartCard: View {
                 .tint(Color(red: 0.25, green: 0.78, blue: 0.9))
                 .disabled(!model.assetsReady)
                 .padding(.top, 8)
-                Link("Surface materials: Poly Haven · CC0", destination: URL(string: "https://polyhaven.com/license")!)
+                Link("Photographed surfaces & scanned props: Poly Haven · CC0", destination: URL(string: "https://polyhaven.com/license")!)
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.6))
             }
