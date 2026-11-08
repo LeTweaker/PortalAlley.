@@ -180,30 +180,38 @@ final class PortalRig {
     }
 }
 
-/// Placement preview: translucent ghost of the real doorway + floor footprint.
+/// A thin floor outline for placement, rather than a life-size translucent
+/// doorway that can fill the camera view when the phone is aimed down.
+/// Uses built-in unlit materials so scanning never depends on custom shaders.
 @MainActor
 final class PreviewRig {
     let anchor = AnchorEntity(world: matrix_identity_float4x4)
     let root = Entity()
-    private let ghost: ModelEntity
-    private let footprint: ModelEntity
-    private let validMat: RealityKit.Material
-    private let invalidMat: RealityKit.Material
+    private var markers: [ModelEntity] = []
+    private let validMat = UnlitMaterial(color: UIColor(red: 0.2, green: 0.9, blue: 0.95, alpha: 1))
+    private let invalidMat = UnlitMaterial(color: UIColor(red: 1, green: 0.65, blue: 0.2, alpha: 1))
     private var lastValid: Bool?
 
     init(assets: PortalAssets) throws {
-        validMat = try assets.uniqueMaterial("footprint", params: SIMD4(0.75, 0, 0, 0))
-        var bad = try assets.uniqueMaterial("footprint", params: SIMD4(0.75, 0, 0, 0))
-        if var c = bad as? CustomMaterial {
-            c.baseColor = CustomMaterial.BaseColor(tint: PortalAssets.srgbColor([1.0, 0.62, 0.18]), texture: c.baseColor.texture)
-            bad = c
+        let halfWidth = assets.dims.outerHalfWidth
+        let halfDepth: Float = 0.30
+        // Eight short corner strokes show the full footprint without covering
+        // the real floor. One small centre stroke marks the threshold.
+        func stroke(size: SIMD3<Float>, at position: SIMD3<Float>) {
+            let e = ModelEntity(mesh: .generateBox(size: size), materials: [validMat])
+            e.position = position
+            markers.append(e)
+            root.addChild(e)
         }
-        invalidMat = bad
-        let frameParts = assets.parts("frame").filter { $0.material != "frame_bolt" }
-        ghost = try assets.modelEntity(frameParts, name: "ghost", materialOverride: validMat)
-        footprint = try assets.modelEntity(assets.parts("portal_aux", chunk: "footprint"), name: "footprint", materialOverride: validMat)
-        root.addChild(ghost)
-        root.addChild(footprint)
+        for x in [Float(-1), Float(1)] {
+            for z in [Float(-1), Float(1)] {
+                stroke(size: SIMD3(0.18, 0.006, 0.012),
+                       at: SIMD3(x * (halfWidth - 0.09), 0.015, z * halfDepth))
+                stroke(size: SIMD3(0.012, 0.006, 0.18),
+                       at: SIMD3(x * halfWidth, 0.015, z * (halfDepth - 0.09)))
+            }
+        }
+        stroke(size: SIMD3(0.16, 0.006, 0.012), at: SIMD3(0, 0.015, 0))
         anchor.addChild(root)
         root.isEnabled = false
     }
@@ -212,11 +220,13 @@ final class PreviewRig {
         root.isEnabled = true
         root.setTransformMatrix(transform, relativeTo: nil)
         if lastValid != valid {
-            ghost.model?.materials = [valid ? validMat : invalidMat]
-            footprint.model?.materials = [valid ? validMat : invalidMat]
+            for marker in markers {
+                marker.model?.materials = [valid ? validMat : invalidMat]
+            }
             lastValid = valid
         }
     }
 
     func hide() { root.isEnabled = false }
 }
+

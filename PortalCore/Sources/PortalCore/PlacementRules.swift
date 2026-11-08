@@ -12,7 +12,7 @@ public struct PlacementInput: Equatable, Sendable {
     public var hitPoint: SIMD3<Float>
     public var cameraPosition: SIMD3<Float>
     public var planeKind: PlaneKind
-    /// y of the lowest horizontal plane ARKit currently knows about.
+    /// y of the lowest confirmed floor, if ARKit has classified one.
     public var lowestHorizontalPlaneY: Float?
     /// ARPlaneAnchor extent (width, height) in metres.
     public var planeExtent: SIMD2<Float>
@@ -48,7 +48,7 @@ public enum PlacementIssue: Equatable, Sendable {
         case .trackingNotReady: return "Hold steady for a moment"
         case .notAFloor: return "Aim at the floor"
         case .notLowestSurface: return "Aim at the floor, not furniture"
-        case .cameraHeightImplausible: return "Aim at the floor in front of you"
+        case .cameraHeightImplausible: return "Hold the phone above the floor, then aim farther ahead"
         case .tooClose: return "Aim a little farther away"
         case .tooFar: return "Aim closer - within about 4 metres"
         case .floorTooSmall: return "Scan a bit more of the floor"
@@ -60,7 +60,8 @@ public enum PlacementIssue: Equatable, Sendable {
 public struct PlacementRules: Sendable {
     public var minDistance: Float = 1.0        // horizontal, camera -> doorway
     public var maxDistance: Float = 4.5
-    public var cameraHeight: ClosedRange<Float> = 0.6...2.4
+    // Allow seated and low-held phones. Being low is not evidence of furniture.
+    public var cameraHeight: ClosedRange<Float> = 0.15...2.4
     public var lowestPlaneTolerance: Float = 0.12
     public var minExtentLong: Float = 0.8
     public var minExtentShort: Float = 0.4
@@ -76,7 +77,10 @@ public struct PlacementRules: Sendable {
         case .table, .seat, .ceiling, .wall, .door, .window: return .notAFloor
         case .floor, .unclassified, .classificationUnsupported: break
         }
-        if let low = i.lowestHorizontalPlaneY, i.hitPoint.y > low + lowestPlaneTolerance {
+        // A positively classified floor may be above another floor (steps), or
+        // a noisy lower estimate. Use the lowest-plane heuristic only when
+        // ARKit has not identified the surface, never to overrule a known floor.
+        if i.planeKind != .floor, let low = i.lowestHorizontalPlaneY, i.hitPoint.y > low + lowestPlaneTolerance {
             return .notLowestSurface
         }
         let h = i.cameraPosition.y - i.hitPoint.y
@@ -104,3 +108,4 @@ public struct DoorwayVolume: Sendable {
         abs(p.x) < halfWidth && abs(p.z) < halfDepth && p.y > minY && p.y < maxY
     }
 }
+
