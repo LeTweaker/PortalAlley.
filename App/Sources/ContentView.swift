@@ -76,6 +76,9 @@ private struct StartCard: View {
             VStack(spacing: 10) {
                 Text("Portal")
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
+                Text("Version 1.2.1")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.6))
                 Text("Open a window through your wall into a rainy Tokyo-inspired alley.")
                     .font(.system(size: 16))
                     .multilineTextAlignment(.center)
@@ -116,6 +119,10 @@ private struct BottomControls: View {
             HStack {
                 RoundButton(system: "xmark", label: "Close", action: model.close)
                 Spacer()
+                Button("Restart scan", action: model.restartScan)
+                    .font(.system(size: 14, weight: .semibold))
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.12, green: 0.4, blue: 0.46))
             }
         case .adjusting:
             HStack(spacing: 12) {
@@ -208,5 +215,6 @@ private struct FatalCard: View {
         .padding(24)
     }
 }
+
 
 
