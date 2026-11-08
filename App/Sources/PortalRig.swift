@@ -145,14 +145,21 @@ final class PortalRig {
         insideBackdrop.name = "InsideEnvironment"
         insideBackdrop.isEnabled = false
         var sky = try assets.uniqueMaterial("sky")
+        var mirrorDome = false
         if var custom = sky as? CustomMaterial {
             custom.faceCulling = .front
             sky = custom
         } else if var fallback = sky as? UnlitMaterial {
-            fallback.faceCulling = .front
+            if #available(iOS 18.0, *) {
+                fallback.faceCulling = .front
+            } else {
+                // Reverse winding for an inward sky on the older unlit API.
+                mirrorDome = true
+            }
             sky = fallback
         }
         let dome = ModelEntity(mesh: .generateSphere(radius: 120), materials: [sky])
+        if mirrorDome { dome.scale.x = -1 }
         dome.name = "InsideSky"
         insideBackdrop.addChild(dome)
 
