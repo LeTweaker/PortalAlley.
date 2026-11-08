@@ -32,6 +32,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     // logic (PortalCore)
     private var machine = ExperienceStateMachine()
     private var tracking = TrackingPolicy()
+    private var scanRecovery = ScanRecoveryPolicy()
     private var boundary = BoundaryPolicy()
     private let rules = PlacementRules()
     private var dims = PortalDimensions()
@@ -85,6 +86,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         arView.renderOptions.insert(.disableFaceMesh)
         arView.environment.sceneUnderstanding.options = []      // see SceneOcclusion for why
         arView.session.delegate = self
+        arView.session.delegateQueue = .main
         installGestures()
         updateSub = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
             self?.update(dt: event.deltaTime)
@@ -138,7 +140,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         warmupAnchor = a
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 600_000_000)
-            guard let self, let rig = self.rig, let wa = self.warmupAnchor else { return }
+            guard let self, let rig = self.rig, let wa = self.warmupAnchor, wa === a else { return }
             if rig.root.parent === wa { rig.root.removeFromParent() }
             rig.root.scale = SIMD3(repeating: 1)
             rig.root.transform = Transform()          // identity: portal space == anchor space
@@ -149,7 +151,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     // MARK: - session
 
-    func runSession() {
+    func runSession(resetTracking: Bool = false) {
         guard ARWorldTrackingConfiguration.isSupported else {
             model?.fatalMessage = "This device doesn't support world tracking."
             return
@@ -158,11 +160,14 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         cfg.planeDetection = [.horizontal, .vertical]
         cfg.environmentTexturing = .automatic          // lights the doorway with the room
         cfg.isLightEstimationEnabled = true
+        cfg.initialWorldMap = nil
         if lidarSupported && lidarOcclusion {
             cfg.sceneReconstruction = .mesh
         }
-        // no reset options: keeps the current map and anchors when re-run
-        arView.session.run(cfg)
+        // Keep a placed doorway on quality changes. Fresh placement scans
+        // explicitly discard the previous map rather than waiting to recover it.
+        let options: ARSession.RunOptions = resetTracking ? [.resetTracking, .removeExistingAnchors] : []
+        arView.session.run(cfg, options: options)
         sessionRunning = true
         occlusion.enabled = lidarSupported && lidarOcclusion
         applyContentScale()
@@ -246,13 +251,19 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     nonisolated func sessionInterruptionEnded(_ session: ARSession) {
         MainActor.assumeIsolated {
             self.interrupted = false
+            if self.portalAnchor == nil && self.machine.phase != .idle {
+                self.beginFreshScan(resetRecoveryBudget: true)
+                return
+            }
             // Keep the map and the anchor; require stable tracking before trusting it again.
             self.tracking.noteInterruption(now: CACurrentMediaTime())
             self.boundary.suspendCrossing()
         }
     }
 
-    nonisolated func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool { true }
+    nonisolated func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool {
+        MainActor.assumeIsolated { self.portalAnchor != nil && self.machine.doorwayAnchored }
+    }
 
     nonisolated func session(_ session: ARSession, didFailWithError error: Error) {
         let message: String
@@ -271,10 +282,50 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     func start() {
         guard model?.assetsReady == true else { return }
-        if !sessionRunning { runSession() }
+        beginFreshScan(resetRecoveryBudget: true)
+    }
+
+    func restartScan() {
+        guard !machine.doorwayAnchored else { return }
+        beginFreshScan(resetRecoveryBudget: true)
+    }
+
+    private func beginFreshScan(resetRecoveryBudget: Bool) {
+        guard model?.assetsReady == true, portalAnchor == nil else { return }
+        preview?.hide()
+        if let warmup = warmupAnchor {
+            if rig?.root.parent === warmup { rig?.root.removeFromParent() }
+            rig?.root.transform = Transform()
+            warmup.removeFromParent()
+            warmupAnchor = nil
+        }
+        candidate = nil
+        pinned = nil
+        placementPanOffset = nil
+        currentIssue = nil
+        displayPreviewPos = nil
+        lastRaycast = 0
+        lastObstruction = (0, nil)
+        occlusion.reset()
+        tracking = TrackingPolicy()
+        boundary = BoundaryPolicy()
+        quality = .initializing
+        qualityText = "initializing (fresh scan)"
+        interrupted = false
+        if resetRecoveryBudget { scanRecovery = ScanRecoveryPolicy() }
+        machine = ExperienceStateMachine()
         machine.handle(.start)
-        warmUpRenderer()
+        model?.fatalMessage = nil
+        model?.showReplaceOffer = false
+        model?.canConfirm = false
+        runSession(resetTracking: true)
+        if let preview {
+            preview.anchor.removeFromParent()
+            arView.scene.addAnchor(preview.anchor)
+        }
+        setInstruction("Move your phone slowly to scan the wall", warning: false)
         publishPhase()
+        warmUpRenderer()
     }
 
     func tap() {
@@ -320,9 +371,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     func reposition() {
         removeDoorway()
-        machine.handle(.reposition)
-        model?.showReplaceOffer = false
-        publishPhase()
+        beginFreshScan(resetRecoveryBudget: true)
     }
 
     func close() {
@@ -430,6 +479,12 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     private func update(dt: TimeInterval) {
         diagnostics.frame(intervalSeconds: dt)
         let now = CACurrentMediaTime()
+        if sessionRunning && machine.phase != .idle &&
+           scanRecovery.shouldRestart(quality, hasDoorway: portalAnchor != nil, now: now) {
+            model?.note("Restarted an unplaced scan stuck relocalizing")
+            beginFreshScan(resetRecoveryBudget: false)
+            return
+        }
         let decision = tracking.update(quality, lowLight: lowLight, now: now)
         let usable = quality == .normal
         if machine.handle(.trackingUsable(usable)) { publishPhase() }
@@ -437,7 +492,9 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         switch machine.phase {
         case .scanning:
             preview?.hide()
-            setInstruction(quality == .normal ? "Point at the wall where the opening should be" : (decision.message ?? "Move your phone slowly to scan the wall"), warning: false)
+            let scanMessage = quality == .relocalizing ? "Recovering camera tracking - tap Restart scan if needed" :
+                (quality == .normal ? "Point at the wall where the opening should be" : (decision.message ?? "Move your phone slowly to scan the wall"))
+            setInstruction(scanMessage, warning: false)
         case .aiming:
             updateAiming(now: now)
         case .adjusting:
@@ -697,6 +754,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         model.diagnostics = d
     }
 }
+
 
 
 

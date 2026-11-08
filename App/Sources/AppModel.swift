@@ -38,6 +38,7 @@ final class AppModel: ObservableObject {
 
     // MARK: intents
     func start() { controller?.start() }
+    func restartScan() { controller?.restartScan() }
     func confirm() { controller?.confirm() }
     func back() { controller?.back() }
     func reposition() { controller?.reposition() }
@@ -52,4 +53,5 @@ final class AppModel: ObservableObject {
     func setARStats(_ on: Bool) { showARStatistics = on; controller?.setARStatistics(on) }
     func report() -> String { controller?.diagnosticsReport() ?? "" }
 }
+
 
