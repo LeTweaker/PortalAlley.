@@ -260,6 +260,7 @@
         frag=vec4(to_srgb(col),1.0);} `,
     room: `void main(){ vec3 n=normalize(vNrm); vec3 c=uTint; vec2 g=vPos.xz;
         if(n.y>0.5){ float plank=step(0.97,fract(g.x*5.0)); float tone=0.9+0.1*sin(floor(g.x*5.0)*12.9); c*=tone*(1.0-0.25*plank); }
+        else if(n.z>0.5 && vPos.z>-0.2){ c=vec3(0.80,0.77,0.71); }
         float l=0.55+0.45*max(dot(n,normalize(vec3(-0.3,0.9,0.4))),0.0); frag=vec4(c*l,1.0);} `,
   };
 
@@ -323,6 +324,15 @@
       quad([-1.6, 0, -4.18], [0.9, 0, 0], [0, 1.9, 0], [0, 0, 1]);   // a door in the back wall (reference)
       quad([2.6, 0.0, -1.5], [0.9, 0, 0], [0, 0.75, 0], [0, 0, 1]);  // a cabinet beside the doorway area
       if (MODE === "ceiling") quad([-4, 2.6, -4.2], [8, 0, 0], [0, 0, 9.2], [0, -1, 0]);   // ceiling
+      if (MODE === "wall" && STYLE === "subtle") {
+        // the real wall the opening is cut into (subtle style is for walls;
+        // floating doorways use the classic frame), part of the camera image
+        const hw = 0.48 * ASCALE, y0 = 0.03 * ASCALE, y1 = 2.05 * ASCALE, z = -0.125, n = [0, 0, 1];
+        quad([-4, 0, z], [4 - hw, 0, 0], [0, 2.6, 0], n);
+        quad([hw, 0, z], [4 - hw, 0, 0], [0, 2.6, 0], n);
+        quad([-hw, 0, z], [2 * hw, 0, 0], [0, y0, 0], n);
+        quad([-hw, y1, z], [2 * hw, 0, 0], [0, 2.6 - y1, 0], n);
+      }
       return { pos: new Float32Array(P), nrm: new Float32Array(N), uv: new Float32Array(UV), idx: new Uint32Array(I), mat: "room" };
     }
 

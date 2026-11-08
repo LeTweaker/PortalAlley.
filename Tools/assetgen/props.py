@@ -31,7 +31,8 @@ from meshkit import MeshBuilder
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 MODELS = os.path.join(ROOT, "Vendor", "polyhaven", "models")
-TEX_PX = 512
+TEX_PX = 512          # albedo (props are small on screen)
+AUX_PX = 256          # packed + normal maps
 
 # kit id -> asset, node names, offset removed (variant layout), primitives skipped
 KIT = {
@@ -227,6 +228,7 @@ def build_textures(save_png, save_jpg):
         cutout = m.get("alphaMode") in ("BLEND", "MASK") and base and "opacity" in os.path.basename(base)
         arm = np.asarray(_img(arm_p, TEX_PX), np.float32) / 255.0 if arm_p else np.ones((TEX_PX, TEX_PX, 3), np.float32) * (1, 0.6, 0)
         ao, rough, metal = arm[..., 0], arm[..., 1], arm[..., 2]
+        arm_small = np.asarray(_img(arm_p, AUX_PX), np.float32) / 255.0 if arm_p else np.ones((AUX_PX, AUX_PX, 3), np.float32) * (1, 0.6, 0)
         if cutout:
             # Poly Haven exports the grille's opacity mask as its base colour:
             # dark painted steel mesh, alpha from the mask.
@@ -238,9 +240,10 @@ def build_textures(save_png, save_jpg):
         # metallic approximation for the unlit alley model: metals reflect,
         # they do not diffuse; darken their albedo and smooth them a little
         rgb = rgb * (1.0 - 0.45 * metal[..., None])
-        rough = np.clip(rough * (1.0 - 0.25 * metal), 0.04, 1.0)
-        wet = (80 + (1 - rough) * 255 * 0.6) / 255.0
-        packed = np.stack([rough, ao, wet], -1)
+        ao_s, rough_s, metal_s = arm_small[..., 0], arm_small[..., 1], arm_small[..., 2]
+        rough_s = np.clip(rough_s * (1.0 - 0.25 * metal_s), 0.04, 1.0)
+        wet = (80 + (1 - rough_s) * 255 * 0.6) / 255.0
+        packed = np.stack([rough_s, ao_s, wet], -1)
         if cutout:
             rgba = np.concatenate([rgb, alpha[..., None]], -1)
             save_png(f"{key}_albedo", Image.fromarray((rgba * 255 + 0.5).clip(0, 255).astype(np.uint8), "RGBA"), "color")
@@ -248,7 +251,7 @@ def build_textures(save_png, save_jpg):
             save_jpg(f"{key}_albedo", Image.fromarray((rgb * 255 + 0.5).clip(0, 255).astype(np.uint8)), "color")
         save_png(f"{key}_packed", Image.fromarray((packed * 255 + 0.5).clip(0, 255).astype(np.uint8)), "raw")
         if nrm_p:
-            save_jpg(f"{key}_normal", _img(nrm_p, TEX_PX), "raw")
+            save_jpg(f"{key}_normal", _img(nrm_p, AUX_PX), "raw")
         MATS[key] = dict(cutout=bool(cutout), normal=bool(nrm_p), src=name, tweak=MAT_TWEAKS.get(name, {}))
         stats[key] = dict(source=os.path.relpath(base or "", ROOT), cutout=bool(cutout),
                           metalFraction=round(float(metal.mean()), 3))

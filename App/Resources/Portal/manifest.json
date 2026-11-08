@@ -504,16 +504,16 @@
    "file": "textures/prop_exterior_aircon_unit_01_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_01_normal": {
    "file": "textures/prop_exterior_aircon_unit_01_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_02_albedo": {
@@ -528,16 +528,16 @@
    "file": "textures/prop_exterior_aircon_unit_02_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_02_normal": {
    "file": "textures/prop_exterior_aircon_unit_02_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_rusted_01_albedo": {
@@ -552,16 +552,16 @@
    "file": "textures/prop_exterior_aircon_unit_rusted_01_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_rusted_01_normal": {
    "file": "textures/prop_exterior_aircon_unit_rusted_01_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_rusted_02_albedo": {
@@ -576,16 +576,16 @@
    "file": "textures/prop_exterior_aircon_unit_rusted_02_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_exterior_aircon_unit_rusted_02_normal": {
    "file": "textures/prop_exterior_aircon_unit_rusted_02_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_metal_trash_can_albedo": {
@@ -600,16 +600,16 @@
    "file": "textures/prop_metal_trash_can_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_metal_trash_can_normal": {
    "file": "textures/prop_metal_trash_can_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_metal_trash_can_rust_albedo": {
@@ -624,16 +624,16 @@
    "file": "textures/prop_metal_trash_can_rust_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_metal_trash_can_rust_normal": {
    "file": "textures/prop_metal_trash_can_rust_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_modular_airduct_circular_01_albedo": {
@@ -648,16 +648,16 @@
    "file": "textures/prop_modular_airduct_circular_01_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_modular_airduct_circular_01_normal": {
    "file": "textures/prop_modular_airduct_circular_01_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_mounted_fluorescent_lights_albedo": {
@@ -672,16 +672,16 @@
    "file": "textures/prop_mounted_fluorescent_lights_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_mounted_fluorescent_lights_normal": {
    "file": "textures/prop_mounted_fluorescent_lights_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_mounted_fluorescent_lights_glass_albedo": {
@@ -696,16 +696,16 @@
    "file": "textures/prop_mounted_fluorescent_lights_glass_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_mounted_fluorescent_lights_glass_normal": {
    "file": "textures/prop_mounted_fluorescent_lights_glass_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_propane_tank_albedo": {
@@ -720,16 +720,16 @@
    "file": "textures/prop_propane_tank_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_propane_tank_normal": {
    "file": "textures/prop_propane_tank_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_rollershutter_window_03_albedo": {
@@ -744,16 +744,16 @@
    "file": "textures/prop_rollershutter_window_03_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_rollershutter_window_03_normal": {
    "file": "textures/prop_rollershutter_window_03_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_security_camera_01_albedo": {
@@ -768,16 +768,16 @@
    "file": "textures/prop_security_camera_01_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_security_camera_01_normal": {
    "file": "textures/prop_security_camera_01_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_security_light_albedo": {
@@ -792,16 +792,16 @@
    "file": "textures/prop_security_light_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_security_light_normal": {
    "file": "textures/prop_security_light_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_security_light_bulb_albedo": {
@@ -816,16 +816,16 @@
    "file": "textures/prop_security_light_bulb_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_security_light_bulb_normal": {
    "file": "textures/prop_security_light_bulb_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_utility_box_01_albedo": {
@@ -840,16 +840,16 @@
    "file": "textures/prop_utility_box_01_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_utility_box_01_normal": {
    "file": "textures/prop_utility_box_01_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_utility_box_02_albedo": {
@@ -864,16 +864,16 @@
    "file": "textures/prop_utility_box_02_packed.png",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "prop_utility_box_02_normal": {
    "file": "textures/prop_utility_box_02_normal.jpg",
    "semantic": "raw",
    "size": [
-    512,
-    512
+    256,
+    256
    ]
   },
   "metal_albedo": {

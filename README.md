@@ -1,13 +1,15 @@
 # PortalAlley
 
-A native iPhone AR portal: place a full-size freestanding doorway on your floor and look
-through it into a rainy, neon-lit night alley ("ほたる横丁", fictional). ARKit 6-DoF world
+A native iPhone AR portal: open a window in a wall, the floor or the ceiling and look through it
+into a rainy night back alley in Tokyo ("ほたる横丁", fictional). ARKit 6-DoF world
 tracking, RealityKit rendering, custom Metal surface shaders, bundled assets, no network.
 
-**Status: source-complete, not yet compiled.** No Mac or Xcode was available while this was
-written, so the Swift and Metal code has never been compiled or run on a device. The first
-compile happens in the included GitHub Actions workflow. See [docs/VALIDATION.md](docs/VALIDATION.md)
-for exactly what was and was not verified.
+**Status (1.3.0):**
+- Compiles and packages on GitHub Actions (macOS runner) into an unsigned IPA.
+- 112 PortalCore unit tests pass on CI.
+- Not yet verified on a physical iPhone by the author. The checks to run are in
+  [docs/PHONE_CHECKLIST.md](docs/PHONE_CHECKLIST.md), and exactly what was and was not verified is
+  in [docs/V1_3.md](docs/V1_3.md#5-validation-actually-performed).
 
 ## Your setup (as confirmed)
 
@@ -29,13 +31,27 @@ Install guide: **[docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md)**. If you do
   "clear area" placement check. Everything else works without it.
 - Camera permission. Sound respects the silent switch.
 
+## What's new in 1.3.0
+
+Photographed CC0 surfaces and scanned props, plus baked contact shadows. Portals can open in
+walls, floors and ceilings; the opening is a subtle cut, and it can be resized and rotated.
+Before/after comparison, budgets, limitations and the phone checks: **[docs/V1_3.md](docs/V1_3.md)**.
+
 ## Using it
 
-Start, then point the camera at a wall. A glowing doorway outline shows where the portal will
-appear. It is cyan when ready and amber with a short reason when not. Tap **CREATE PORTAL**.
-If no wall can be found, the outline becomes a standing doorway 2.2 m ahead, clearly labelled.
-After placing: **MOVE PORTAL**, **RESTART SCAN**, **Find Portal** (when it's off-screen),
-Look inside, Mute and Close. Advanced pin, drag and Open placement: diagnostics (three-finger
+Start, then point the camera at a wall, the floor or the ceiling. A glowing outline and a small
+crosshair show where the portal will appear. They are cyan when ready and amber with a short
+reason when not. Tap **CREATE PORTAL**. If no surface can be used, the outline becomes a standing
+doorway 2.2 m ahead, clearly labelled.
+
+After placing:
+- **Reposition**
+- **Adjust**: resize and rotate the opening
+- **Close Portal**
+- **Restart Scan**
+- **Find Portal**, when it's off-screen
+- Look inside (wall portals)
+- Mute Advanced pin, drag and Open placement: diagnostics (three-finger
 tap) → Easy Mode off. Details: [docs/EASY_PLACEMENT.md](docs/EASY_PLACEMENT.md).
 
 ## Repository map
