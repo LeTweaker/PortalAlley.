@@ -178,6 +178,12 @@ final class PortalAssets {
                     m.baseColor = CustomMaterial.BaseColor(tint: Self.srgbColor(def.tint), texture: CustomMaterial.Texture(try texture(b)))
                 }
                 m.custom = CustomMaterial.Custom(value: value, texture: try tex["custom"].map { CustomMaterial.Texture(try texture($0)) })
+                // The unlit shader evaluates its own photographed normal map.
+                // specular_scale is an otherwise unused flag in this pipeline.
+                m.specular = CustomMaterial.Specular(floatLiteral: tex["normal"] == nil ? 0 : 1)
+                if let normal = tex["normal"] {
+                    m.normal = CustomMaterial.Normal(texture: CustomMaterial.Texture(try texture(normal)))
+                }
                 if let aux = tex["emissiveColor"] {
                     m.emissiveColor = CustomMaterial.EmissiveColor(color: .white, texture: CustomMaterial.Texture(try texture(aux)))
                 }
@@ -246,3 +252,4 @@ extension Entity {
         for c in children { c.visit(body) }
     }
 }
+

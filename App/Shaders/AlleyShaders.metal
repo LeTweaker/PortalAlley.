@@ -49,6 +49,22 @@ static int light_count(thread realitykit::surface_parameters &params) {
 
 static float2 usd_uv(float2 uv) { return float2(uv.x, 1.0 - uv.y); }
 
+// Derivative cotangent frame works with the baked meshes without adding
+// per-vertex tangents. The map is sampled as raw linear OpenGL normal data.
+static float3 photographic_normal(thread realitykit::surface_parameters &params,
+                                  float3 p, float3 n, float2 uv) {
+    if (float(params.material_constants().specular_scale()) < 0.5) { return n; }
+    float3 dp1 = dfdx(p), dp2 = dfdy(p);
+    float2 duv1 = dfdx(uv), duv2 = dfdy(uv);
+    float3 a = cross(dp2, n), b = cross(n, dp1);
+    float3 T = a * duv1.x + b * duv2.x;
+    float3 B = a * duv1.y + b * duv2.y;
+    float scale = rsqrt(max(max(dot(T, T), dot(B, B)), 1e-10));
+    float3 detail = float3(params.textures().normal().sample(kRepeat, uv).rgb) * 2.0 - 1.0;
+    detail.xy *= 0.7;
+    return normalize(T * scale * detail.x + B * scale * detail.y + n * detail.z);
+}
+
 // Writes go straight to params inside each entry point (never through a copy).
 #define EMIT(c) params.surface().set_emissive_color(half3(c))
 
@@ -67,6 +83,7 @@ void alleyLit(realitykit::surface_parameters params)
     float t = params.uniforms().time();
     // geometry is two-sided in a few places (awnings, noren): face the viewer
     float3 n = dot(s.n, s.v) < 0.0 ? -s.n : s.n;
+    n = photographic_normal(params, s.p, n, uv);
     EMIT(shade_lit(s.p, n, s.v, alb, pk, prm, t, light_count(params)));
 }
 
@@ -83,7 +100,8 @@ void alleyGround(realitykit::surface_parameters params)
     float pud = float(tex.emissive_color().sample(kClamp, puv).r);
     float4 prm = params.uniforms().custom_parameter();
     float t = params.uniforms().time();
-    EMIT(shade_ground(s.p, s.v, alb, pk, pud, prm, t, light_count(params)));
+    float3 detail = photographic_normal(params, s.p, float3(0, 1, 0), uv);
+    EMIT(shade_ground_detail(s.p, s.v, alb, pk, pud, prm, t, light_count(params), detail));
 }
 
 [[visible]]
@@ -245,3 +263,4 @@ void previewGhost(realitykit::surface_parameters params)
     EMIT(tint);
     params.surface().set_opacity(half(clamp(a, 0.0, 1.0)));
 }
+

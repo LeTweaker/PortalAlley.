@@ -64,6 +64,8 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     private var lastCameraLocal = SIMD3<Float>(repeating: 0)
     private var warmupAnchor: AnchorEntity?
     private var interrupted = false
+    private var insideOffset: SIMD3<Float>?
+    private var placementPanOffset: SIMD3<Float>?
 
     // settings
     private(set) var tier: QualityTier = .deviceDefault
@@ -153,7 +155,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             return
         }
         let cfg = ARWorldTrackingConfiguration()
-        cfg.planeDetection = [.horizontal]
+        cfg.planeDetection = [.horizontal, .vertical]
         cfg.environmentTexturing = .automatic          // lights the doorway with the room
         cfg.isLightEstimationEnabled = true
         if lidarSupported && lidarOcclusion {
@@ -341,6 +343,29 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     func setMuted(_ m: Bool) { muted = m }
 
+    /// View the inside of a wall-mounted portal without physically crossing a
+    /// solid wall. Translate only the destination to an equivalent camera view;
+    /// the placed doorway's world anchor is never modified.
+    func toggleInsideView() {
+        guard machine.phase == .open, let ae = anchorEntity, let rig else { return }
+        if insideOffset != nil {
+            insideOffset = nil
+            rig.setDestinationOffset(.zero)
+            boundary = BoundaryPolicy()
+            model?.insideView = false
+            return
+        }
+        guard quality == .normal && !interrupted else { return }
+        let local = PortalMath.toPortalSpace(PortalMath.translation(arView.cameraTransform.matrix),
+                                             portal: ae.transformMatrix(relativeTo: nil))
+        let offset = PortalMath.interiorViewOffset(cameraLocal: local)
+        let target = local - offset
+        insideOffset = offset
+        rig.setDestinationOffset(offset)
+        boundary.enterInside(cameraLocal: target)
+        model?.insideView = true
+    }
+
     func setTier(_ t: QualityTier) {
         tier = t
         rig?.applyTier(t)
@@ -380,6 +405,10 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
 
     private func removeDoorway() {
         audio?.stop()
+        insideOffset = nil
+        model?.insideView = false
+        rig?.setDestinationOffset(.zero)
+        boundary = BoundaryPolicy()
         rig?.root.removeFromParent()
         anchorEntity?.removeFromParent()
         if let a = portalAnchor { arView.session.remove(anchor: a) }
@@ -408,7 +437,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         switch machine.phase {
         case .scanning:
             preview?.hide()
-            setInstruction(quality == .normal ? "Point at the floor where the doorway should stand" : (decision.message ?? "Move your phone slowly to scan the floor"), warning: false)
+            setInstruction(quality == .normal ? "Point at the wall where the opening should be" : (decision.message ?? "Move your phone slowly to scan the wall"), warning: false)
         case .aiming:
             updateAiming(now: now)
         case .adjusting:
@@ -472,7 +501,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         let cam = PortalMath.translation(arView.cameraTransform.matrix)
         let input = PlacementInput(hitPoint: position, cameraPosition: cam, planeKind: plane,
                                    lowestHorizontalPlaneY: lowestHorizontalPlaneY(), planeExtent: extent,
-                                   obstructionPoints: obstructionCount(for: PortalMath.transform(position: position, yaw: yaw), now: now),
+                                   obstructionPoints: plane == .wall ? nil : obstructionCount(for: PortalMath.transform(position: position, yaw: yaw), now: now),
                                    trackingNormal: quality == .normal)
         return rules.evaluate(input)
     }
@@ -481,29 +510,38 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         guard now - lastRaycast > 1.0 / 30 else { return }
         lastRaycast = now
         let centre = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
-        let hit = arView.raycast(from: centre, allowing: .existingPlaneGeometry, alignment: .horizontal)
-            .first { $0.anchor is ARPlaneAnchor }
+        let hit = arView.raycast(from: centre, allowing: .existingPlaneGeometry, alignment: .vertical)
+            .first { ($0.anchor as? ARPlaneAnchor)?.alignment == .vertical }
         guard let hit, let plane = hit.anchor as? ARPlaneAnchor else {
             candidate = nil
-            currentIssue = .notAFloor
+            currentIssue = .notAWall
             machine.handle(.placementValid(false))
             preview?.hide()
-            setInstruction("Point at the floor and move slowly", warning: false)
+            setInstruction("Point at a wall and move the phone slowly", warning: false)
             return
         }
-        let pos = PortalMath.translation(hit.worldTransform)
+        let wallHit = PortalMath.translation(hit.worldTransform)
         let cam = PortalMath.translation(arView.cameraTransform.matrix)
-        let yaw = PortalMath.facingYaw(floorPoint: pos, camera: cam)
-        let kind = planeKind(plane)
+        let n = plane.transform.columns.1
+        guard let pose = PortalMath.wallPlacement(hit: wallHit, normal: SIMD3(n.x, n.y, n.z),
+                                                  camera: cam, floorY: lowestHorizontalPlaneY(), dims: dims) else {
+            candidate = nil
+            currentIssue = .notAWall
+            machine.handle(.placementValid(false))
+            preview?.hide()
+            return
+        }
+        let pos = PortalMath.translation(pose)
+        let yaw = PortalMath.yaw(of: pose)
         let extent = SIMD2<Float>(plane.planeExtent.width, plane.planeExtent.height)
-        candidate = (pos, yaw, kind, extent)
-        currentIssue = evaluate(position: pos, yaw: yaw, plane: kind, extent: extent, now: now)
+        candidate = (pos, yaw, .wall, extent)
+        currentIssue = evaluate(position: pos, yaw: yaw, plane: .wall, extent: extent, now: now)
         machine.handle(.placementValid(currentIssue == nil))
-        // display smoothing of the PREVIEW only (the doorway itself is never smoothed)
+        // Smooth only the aiming indicator. The confirmed opening never follows a raycast.
         let shown = displayPreviewPos.map { simd_mix($0, pos, SIMD3(repeating: 0.35)) } ?? pos
         displayPreviewPos = shown
         preview?.show(PortalMath.transform(position: shown, yaw: yaw), valid: currentIssue == nil)
-        setInstruction(currentIssue?.message ?? "Tap to place the doorway", warning: currentIssue != nil)
+        setInstruction(currentIssue?.message ?? "Tap to pin the opening to this wall", warning: currentIssue != nil)
     }
 
     private func updateAdjusting() {
@@ -511,7 +549,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         currentIssue = evaluate(position: p.position, yaw: p.yaw, plane: p.plane, extent: p.extent, now: CACurrentMediaTime())
         machine.handle(.placementValid(currentIssue == nil))
         preview?.show(PortalMath.transform(position: p.position, yaw: p.yaw), valid: currentIssue == nil)
-        setInstruction(currentIssue?.message ?? "Drag to move, twist to turn", warning: currentIssue != nil)
+        setInstruction(currentIssue?.message ?? "Drag to position the opening on the wall", warning: currentIssue != nil)
         let can = currentIssue == nil && warmupAnchor == nil
         if model?.canConfirm != can { model?.canConfirm = can }
     }
@@ -519,10 +557,11 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     private func updatePortal(dt: Float, now: TimeInterval, decision: TrackingDecision) {
         guard let rig, let ae = anchorEntity else { return }
         let portalWorld = ae.transformMatrix(relativeTo: nil)
-        let camLocal = PortalMath.toPortalSpace(PortalMath.translation(arView.cameraTransform.matrix), portal: portalWorld)
+        let physicalLocal = PortalMath.toPortalSpace(PortalMath.translation(arView.cameraTransform.matrix), portal: portalWorld)
+        let camLocal = physicalLocal - (insideOffset ?? .zero)
         lastCameraLocal = camLocal
         let b = boundary.evaluate(cameraLocal: camLocal, dims: dims,
-                                  allowCrossing: machine.phase == .open && decision.trustworthy && !interrupted)
+                                  allowCrossing: false)
         let t = Float(now - phaseStart)
 
         var look: PortalLook
@@ -560,7 +599,8 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             occlusion.update(meshAnchors: anchors, portalWorld: portalWorld, now: now)
         }
         if decision.offerReplacement && model?.showReplaceOffer == false { model?.showReplaceOffer = true }
-        let msg = interrupted ? "Paused" : (decision.message ?? b.message)
+        let viewMessage = insideOffset != nil ? "Turn your phone to look around. Tap Back to room to return." : nil
+        let msg = interrupted ? "Paused" : (decision.message ?? viewMessage ?? b.message)
         setInstruction(msg ?? "", warning: decision.message != nil || (!b.insideWorld && b.message != nil))
         if machine.phase == .open {
             diagnostics.soakTick(tracking: qualityText, corrections: corrections, maxCorrectionCm: Double(maxCorrection * 100), tier: tier.rawValue)
@@ -589,16 +629,24 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     @objc private func onDevTap(_ g: UITapGestureRecognizer) { model?.devPanelVisible.toggle() }
 
     @objc private func onPan(_ g: UIPanGestureRecognizer) {
+        if g.state == .ended || g.state == .cancelled {
+            placementPanOffset = nil
+            return
+        }
         guard machine.phase == .adjusting, var p = pinned else { return }
         let pt = g.location(in: arView)
+        let normal = SIMD3<Float>(sin(p.yaw), 0, cos(p.yaw))
         guard let ray = arView.ray(through: pt),
-              let hit = PortalMath.intersectHorizontalPlane(origin: ray.origin, direction: ray.direction, planeY: p.position.y) else { return }
-        p.position = SIMD3(hit.x, p.position.y, hit.z)
+              let hit = PortalMath.intersectPlane(origin: ray.origin, direction: ray.direction,
+                                                   point: p.position, normal: normal) else { return }
+        if g.state == .began || placementPanOffset == nil { placementPanOffset = hit - p.position }
+        p.position = hit - (placementPanOffset ?? .zero)
         pinned = p
     }
 
     @objc private func onRotate(_ g: UIRotationGestureRecognizer) {
         guard machine.phase == .adjusting, var p = pinned else { return }
+        guard p.plane != .wall else { return } // keep the opening parallel to its wall
         p.yaw = PortalMath.wrapAngle(p.yaw - Float(g.rotation))
         g.rotation = 0
         pinned = p
@@ -649,5 +697,6 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         model.diagnostics = d
     }
 }
+
 
 

@@ -22,6 +22,7 @@ final class PortalRig {
     let interiorRoot = Entity()
     let worldRoot = Entity()
     private let insideBackdrop = Entity()
+    private var insideFrame: Entity?
     private var apertureMask: ModelEntity!
     private var wasInside = false
     private var spillRequested = false
@@ -62,7 +63,18 @@ final class PortalRig {
     // MARK: build
 
     private func buildFrame() throws {
-        let parts = assets.parts("frame")
+        // Remove low floor-support triangles from the original freestanding
+        // frame. The recessed surround and sill remain for the wall opening.
+        let parts = assets.parts("frame").map { part -> MeshPart in
+            var p = part
+            p.indices = stride(from: 0, to: part.indices.count, by: 3).flatMap { k -> [UInt32] in
+                let ids = Array(part.indices[k..<(k + 3)])
+                let v = ids.map { part.positions[Int($0)] }
+                let foot = v.allSatisfy { $0.y < 0.08 } && v.contains { abs($0.x) > self.dims.outerHalfWidth || $0.z > 0.125 }
+                return foot ? [] : ids
+            }
+            return p
+        }.filter { !$0.indices.isEmpty }
         let lightParts = parts.filter { $0.material == "frame_light" || $0.material == "frame_led" }
         let solid = parts.filter { !lightParts.map(\.material).contains($0.material) }
         let body = try assets.modelEntity(solid, name: "frameBody")
@@ -132,7 +144,11 @@ final class PortalRig {
 
     func setSpill(_ on: Bool) {
         spillRequested = on
-        spill?.isEnabled = on && !wasInside
+        spill?.isEnabled = false // a wall opening has no artificial floor spill
+    }
+
+    func setDestinationOffset(_ offset: SIMD3<Float>) {
+        worldRoot.position = offset
     }
 
     /// Inside-only closure: the original alley was authored for a front view.
@@ -144,6 +160,10 @@ final class PortalRig {
         worldRoot.addChild(insideBackdrop)
         insideBackdrop.name = "InsideEnvironment"
         insideBackdrop.isEnabled = false
+        let returnFrame = frameRoot.clone(recursive: true)
+        returnFrame.findEntity(named: "contactShadow")?.isEnabled = false
+        insideBackdrop.addChild(returnFrame)
+        insideFrame = returnFrame
         var sky = try assets.uniqueMaterial("sky")
         var mirrorDome = false
         if var custom = sky as? CustomMaterial {
@@ -219,8 +239,9 @@ final class PortalRig {
         worldRoot.isEnabled = worldVisible
         insideBackdrop.isEnabled = insideWorld
         apertureMask.isEnabled = !insideWorld
-        spill?.isEnabled = spillRequested && !insideWorld
-        frameRoot.findEntity(named: "contactShadow")?.isEnabled = !insideWorld
+        spill?.isEnabled = false
+        frameRoot.findEntity(named: "contactShadow")?.isEnabled = false
+        insideFrame?.isEnabled = insideWorld
         let l = look
         if sideChanged || abs(l.apertureOpen - lastLook.apertureOpen) > 0.0005 { setLeaves(open: l.apertureOpen) }
         if sideChanged || abs(l.veil - lastLook.veil) > 0.002 {
@@ -252,13 +273,12 @@ final class PortalRig {
             veil.isEnabled = false
             seam.isEnabled = false
         }
+        frameRoot.isEnabled = l.frameOpacity > 0.001 && !insideWorld
         lastLook = l
     }
 }
 
-/// A thin floor outline for placement, rather than a life-size translucent
-/// doorway that can fill the camera view when the phone is aimed down.
-/// Uses built-in unlit materials so scanning never depends on custom shaders.
+/// Thin corner marks aligned to the actual wall opening.
 @MainActor
 final class PreviewRig {
     let anchor = AnchorEntity(world: matrix_identity_float4x4)
@@ -269,25 +289,22 @@ final class PreviewRig {
     private var lastValid: Bool?
 
     init(assets: PortalAssets) throws {
-        let halfWidth = assets.dims.outerHalfWidth
-        let halfDepth: Float = 0.30
-        // Eight short corner strokes show the full footprint without covering
-        // the real floor. One small centre stroke marks the threshold.
-        func stroke(size: SIMD3<Float>, at position: SIMD3<Float>) {
+        let dims = assets.dims
+        let hw = dims.openHalfWidth
+        let z = dims.frameFrontZ + 0.01
+        func stroke(_ size: SIMD3<Float>, _ position: SIMD3<Float>) {
             let e = ModelEntity(mesh: .generateBox(size: size), materials: [validMat])
             e.position = position
             markers.append(e)
             root.addChild(e)
         }
-        for x in [Float(-1), Float(1)] {
-            for z in [Float(-1), Float(1)] {
-                stroke(size: SIMD3(0.18, 0.006, 0.012),
-                       at: SIMD3(x * (halfWidth - 0.09), 0.015, z * halfDepth))
-                stroke(size: SIMD3(0.012, 0.006, 0.18),
-                       at: SIMD3(x * halfWidth, 0.015, z * (halfDepth - 0.09)))
+        for x in [Float(-1), 1] {
+            for top in [false, true] {
+                let y = top ? dims.openY1 : dims.openY0
+                stroke(SIMD3(0.16, 0.009, 0.009), SIMD3(x * (hw - 0.08), y, z))
+                stroke(SIMD3(0.009, 0.16, 0.009), SIMD3(x * hw, y + (top ? -0.08 : 0.08), z))
             }
         }
-        stroke(size: SIMD3(0.16, 0.006, 0.012), at: SIMD3(0, 0.015, 0))
         anchor.addChild(root)
         root.isEnabled = false
     }
@@ -296,14 +313,12 @@ final class PreviewRig {
         root.isEnabled = true
         root.setTransformMatrix(transform, relativeTo: nil)
         if lastValid != valid {
-            for marker in markers {
-                marker.model?.materials = [valid ? validMat : invalidMat]
-            }
+            for marker in markers { marker.model?.materials = [valid ? validMat : invalidMat] }
             lastValid = valid
         }
     }
-
     func hide() { root.isEnabled = false }
 }
+
 
 
