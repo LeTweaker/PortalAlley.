@@ -31,11 +31,12 @@ Install guide: **[docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md)**. If you do
 
 ## Using it
 
-Start, then move the phone slowly over the floor. Aim at a clear spot 1-4.5 m away. The preview
-shows cyan when the spot is credible, amber with a reason otherwise. **Tap** to pin it, **drag**
-to move, **twist** with two fingers to turn, then **Open portal**. After that the doorway is
-locked to a world anchor. Buttons: Reposition, Mute, Close. Diagnostics: three-finger tap, or
-long-press the instruction text.
+Start, then point the camera at a wall. A glowing doorway outline shows where the portal will
+appear. It is cyan when ready and amber with a short reason when not. Tap **CREATE PORTAL**.
+If no wall can be found, the outline becomes a standing doorway 2.2 m ahead, clearly labelled.
+After placing: **MOVE PORTAL**, **RESTART SCAN**, **Find Portal** (when it's off-screen),
+Look inside, Mute and Close. Advanced pin, drag and Open placement: diagnostics (three-finger
+tap) → Easy Mode off. Details: [docs/EASY_PLACEMENT.md](docs/EASY_PLACEMENT.md).
 
 ## Repository map
 

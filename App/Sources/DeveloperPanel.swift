@@ -36,6 +36,7 @@ struct DeveloperPanel: View {
                 Text("Low").tag(QualityTier.low)
             }
             .pickerStyle(.segmented)
+            Toggle("Easy Mode (CREATE PORTAL button)", isOn: Binding(get: { model.easyMode }, set: { model.setEasyMode($0) }))
             if model.lidarSupported {
                 Toggle("LiDAR occlusion (room side only)", isOn: Binding(get: { model.lidarOcclusion }, set: { model.setLidar($0) }))
             } else {

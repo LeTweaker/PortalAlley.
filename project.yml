@@ -27,8 +27,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: Portal
-        CFBundleShortVersionString: "1.2.1"
-        CFBundleVersion: "4"
+        CFBundleShortVersionString: "1.2.2"
+        CFBundleVersion: "5"
         NSCameraUsageDescription: The camera shows your room so the doorway can be placed in it.
         UIRequiredDeviceCapabilities: [arkit]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]

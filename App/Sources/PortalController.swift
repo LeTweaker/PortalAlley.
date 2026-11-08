@@ -51,6 +51,15 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     private var lastRaycast: TimeInterval = 0
     private var lastObstruction: (time: TimeInterval, count: Int?) = (0, nil)
 
+    // Easy Mode (v1.2.2): live proposal, one-tap CREATE PORTAL
+    private var easyMode = true
+    private var easy = EasyPlacement()
+    private var proposal: PlacementProposal?
+    private var lastPreviewMethod: PlacementMethod?
+    private var placedMethod: PlacementMethod?
+    private var findGuideUntil: TimeInterval = 0
+    private var lastFindCheck: TimeInterval = 0
+
     // anchored doorway
     private var portalAnchor: ARAnchor?
     private var anchorEntity: AnchorEntity?
@@ -107,6 +116,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             let a = try PortalAssets(tier: tier)
             assets = a
             dims = a.dims
+            easy = EasyPlacement(dims: a.dims)
             occlusion.dims = a.dims
             try await a.loadMeshes()
             try await a.preloadTextures()
@@ -286,8 +296,11 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     }
 
     func restartScan() {
-        guard !machine.doorwayAnchored else { return }
-        beginFreshScan(resetRecoveryBudget: true)
+        if machine.doorwayAnchored {
+            reposition()                 // removes the doorway, then a fresh scan
+        } else {
+            beginFreshScan(resetRecoveryBudget: true)
+        }
     }
 
     private func beginFreshScan(resetRecoveryBudget: Bool) {
@@ -301,6 +314,12 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         }
         candidate = nil
         pinned = nil
+        proposal = nil
+        lastPreviewMethod = nil
+        placedMethod = nil
+        findGuideUntil = 0
+        model?.canCreate = false
+        model?.portalOffscreen = false
         placementPanOffset = nil
         currentIssue = nil
         displayPreviewPos = nil
@@ -323,13 +342,13 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             preview.anchor.removeFromParent()
             arView.scene.addAnchor(preview.anchor)
         }
-        setInstruction("Move your phone slowly to scan the wall", warning: false)
+        setInstruction(easyMode ? "Point the camera at a wall" : "Move your phone slowly to scan the wall", warning: false)
         publishPhase()
         warmUpRenderer()
     }
 
     func tap() {
-        guard machine.phase == .aiming, let c = candidate, currentIssue == nil else { return }
+        guard !easyMode, machine.phase == .aiming, let c = candidate, currentIssue == nil else { return }
         pinned = c
         machine.handle(.tap)
         publishPhase()
@@ -338,8 +357,36 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     func confirm() {
         guard machine.phase == .adjusting, currentIssue == nil, let p = pinned, let rig, warmupAnchor == nil else { return }
         guard machine.handle(.confirm) else { return }
+        placedMethod = p.plane == .wall ? .wall : .standing
+        anchorDoorway(PortalMath.transform(position: p.position, yaw: p.yaw), rig: rig)
+    }
+
+    /// Easy Mode: place immediately from the live preview.
+    func createPortal() {
+        guard easyMode, machine.phase == .aiming, let p = proposal, p.ready, let rig, warmupAnchor == nil else { return }
+        // Last check against the camera pose of this very frame: never spawn
+        // behind the user, facing away, or so close that it overfills the view.
+        let camM = arView.cameraTransform.matrix
+        let fwd = -SIMD3<Float>(camM.columns.2.x, camM.columns.2.y, camM.columns.2.z)
+        if let issue = PlacementSafety.check(portal: p.transform, camera: PortalMath.translation(camM), cameraForward: fwd, dims: dims) {
+            model?.note("Create skipped: \(issue)")
+            setInstruction("Hold the phone steady and point at the spot", warning: true)
+            return
+        }
+        guard machine.handle(.create) else { return }
+        placedMethod = p.method
+        anchorDoorway(p.transform, rig: rig)
+        switch p.method {
+        case .wall: model?.showConfirmation("Portal placed on the wall")
+        case .estimatedWall: model?.showConfirmation("Portal placed on the wall")
+        case .standing: model?.showConfirmation("Portal placed - standing doorway (no wall found)")
+        }
+    }
+
+    /// Anchor the doorway at `m` and start the opening.  The only place an
+    /// ARAnchor for the doorway is created; its transform is never written again.
+    private func anchorDoorway(_ m: simd_float4x4, rig: PortalRig) {
         preview?.hide()
-        let m = PortalMath.transform(position: p.position, yaw: p.yaw)
         let anchor = ARAnchor(name: "PortalDoorway", transform: m)
         arView.session.add(anchor: anchor)
         let ae = AnchorEntity(anchor: anchor)
@@ -372,6 +419,36 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
     func reposition() {
         removeDoorway()
         beginFreshScan(resetRecoveryBudget: true)
+    }
+
+    /// MOVE PORTAL: take the doorway away and return to the live preview in the
+    /// SAME tracked session (detected walls are kept, so it is instant).
+    func movePortal() {
+        guard machine.phase == .open || machine.phase == .opening else { return }
+        removeDoorway()
+        machine.handle(.reposition)
+        proposal = nil
+        displayPreviewPos = nil
+        lastPreviewMethod = nil
+        lastRaycast = 0
+        model?.showReplaceOffer = false
+        model?.portalOffscreen = false
+        publishPhase()
+    }
+
+    /// FIND PORTAL: show turn-by-turn guidance for a few seconds.
+    func findPortal() {
+        findGuideUntil = CACurrentMediaTime() + 5
+        lastFindCheck = 0
+    }
+
+    func setEasyMode(_ on: Bool) {
+        easyMode = on
+        model?.easyMode = on
+        if machine.phase == .adjusting { back() }
+        proposal = nil
+        candidate = nil
+        model?.canCreate = false
     }
 
     func close() {
@@ -467,6 +544,8 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         pinned = nil
         occlusion.reset()
         tracking = TrackingPolicy()
+        findGuideUntil = 0
+        model?.portalOffscreen = false
     }
 
     private func pauseSession() {
@@ -493,10 +572,12 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         case .scanning:
             preview?.hide()
             let scanMessage = quality == .relocalizing ? "Recovering camera tracking - tap Restart scan if needed" :
-                (quality == .normal ? "Point at the wall where the opening should be" : (decision.message ?? "Move your phone slowly to scan the wall"))
+                (quality == .normal ? "Point at the wall where the opening should be" :
+                    (easyMode ? "Starting the camera - move the phone slowly" : (decision.message ?? "Move your phone slowly to scan the wall")))
+            if model?.canCreate == true { model?.canCreate = false }
             setInstruction(scanMessage, warning: false)
         case .aiming:
-            updateAiming(now: now)
+            if easyMode { updateAimingEasy(now: now) } else { updateAiming(now: now) }
         case .adjusting:
             updateAdjusting()
         case .opening, .open, .closing:
@@ -529,6 +610,92 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
             .filter { $0.alignment == .horizontal && $0.classification == .floor }
             .map { $0.transform.columns.3.y }
             .min()
+    }
+
+    private func lowestAnyHorizontalPlaneY() -> Float? {
+        arView.session.currentFrame?.anchors
+            .compactMap { $0 as? ARPlaneAnchor }
+            .filter { $0.alignment == .horizontal }
+            .map { $0.transform.columns.3.y }
+            .min()
+    }
+
+    /// Easy Mode aiming: detected wall -> estimated vertical surface ->
+    /// freestanding doorway ahead.  Always shows where the portal will appear.
+    private func updateAimingEasy(now: TimeInterval) {
+        guard now - lastRaycast > 1.0 / 30 else { return }
+        lastRaycast = now
+        let centre = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
+        let camM = arView.cameraTransform.matrix
+        let cam = PortalMath.translation(camM)
+        let fwd = -SIMD3<Float>(camM.columns.2.x, camM.columns.2.y, camM.columns.2.z)
+        var detected: SurfaceHit?
+        if let hit = arView.raycast(from: centre, allowing: .existingPlaneGeometry, alignment: .vertical)
+            .first(where: { ($0.anchor as? ARPlaneAnchor)?.alignment == .vertical }),
+           let plane = hit.anchor as? ARPlaneAnchor {
+            let n = plane.transform.columns.1
+            detected = SurfaceHit(point: PortalMath.translation(hit.worldTransform), normal: SIMD3(n.x, n.y, n.z),
+                                  extent: SIMD2(plane.planeExtent.width, plane.planeExtent.height))
+        }
+        var estimated: SurfaceHit?
+        if let hit = arView.raycast(from: centre, allowing: .estimatedPlane, alignment: .vertical).first {
+            let p = PortalMath.translation(hit.worldTransform)
+            let c1 = hit.worldTransform.columns.1
+            var n = SIMD3<Float>(c1.x, c1.y, c1.z)
+            // If ARKit gives no usable surface orientation, face the camera.
+            if abs(n.y) > 0.35 || simd_length(n) < 0.5 { n = SIMD3(cam.x - p.x, 0, cam.z - p.z) }
+            estimated = SurfaceHit(point: p, normal: n)
+        }
+        let input = EasyPlacementInput(camera: cam, cameraForward: fwd, detectedWall: detected, estimatedWall: estimated,
+                                       confirmedFloorY: lowestHorizontalPlaneY(), lowestPlaneY: lowestAnyHorizontalPlaneY(),
+                                       trackingNormal: quality == .normal)
+        let p = easy.resolve(input)
+        proposal = p
+        machine.handle(.placementValid(p.ready))
+        // Smooth only the indicator; jump when the method changes (wall <-> standing).
+        let target = p.position
+        let shown: SIMD3<Float>
+        if let d = displayPreviewPos, lastPreviewMethod == p.method { shown = simd_mix(d, target, SIMD3(repeating: 0.35)) } else { shown = target }
+        displayPreviewPos = shown
+        lastPreviewMethod = p.method
+        preview?.show(PortalMath.transform(position: shown, yaw: p.yaw), valid: p.ready)
+        let can = p.ready && warmupAnchor == nil
+        if model?.canCreate != can { model?.canCreate = can }
+        let method: String
+        switch p.method {
+        case .wall: method = "Wall found"
+        case .estimatedWall: method = "Wall estimated"
+        case .standing: method = "No wall - standing doorway"
+        }
+        if model?.placementMethod != method { model?.placementMethod = method }
+        if model?.placementHint != p.hint { model?.placementHint = p.hint }
+        setInstruction(p.status, warning: !p.ready)
+    }
+
+    /// Off-screen indicator + guidance toward the placed doorway.
+    private func updateFindPortal(portalWorld: simd_float4x4, now: TimeInterval) -> String? {
+        guard now - lastFindCheck > 0.1 || now < findGuideUntil else { return nil }
+        lastFindCheck = now
+        let target = PortalMath.fromPortalSpace(SIMD3(0, (dims.openY0 + dims.openY1) / 2, 0), portal: portalWorld)
+        let camM = arView.cameraTransform.matrix
+        let cam = PortalMath.translation(camM)
+        let fwd = -SIMD3<Float>(camM.columns.2.x, camM.columns.2.y, camM.columns.2.z)
+        let inFront = simd_dot(target - cam, fwd) > 0
+        var onScreen = false
+        var angle: Double = 0
+        let hint = FindPortal.hint(camera: cam, cameraForward: fwd, target: target)
+        if inFront, let pt = arView.project(target) {
+            onScreen = arView.bounds.insetBy(dx: 24, dy: 80).contains(pt)
+            angle = atan2(Double(pt.x - arView.bounds.midX), Double(arView.bounds.midY - pt.y))
+        } else {
+            angle = hint.turnDegrees >= 0 ? .pi / 2 : -.pi / 2
+        }
+        let off = !onScreen
+        if model?.portalOffscreen != off { model?.portalOffscreen = off }
+        let q = (angle / (Double.pi / 36)).rounded() * (Double.pi / 36)
+        if model?.findArrowAngle != q { model?.findArrowAngle = q }
+        guard now < findGuideUntil else { return nil }
+        return onScreen ? "There it is" : hint.message
     }
 
     /// LiDAR clear-area check: reconstructed points inside the doorway volume.
@@ -657,7 +824,8 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         }
         if decision.offerReplacement && model?.showReplaceOffer == false { model?.showReplaceOffer = true }
         let viewMessage = insideOffset != nil ? "Turn your phone to look around. Tap Back to room to return." : nil
-        let msg = interrupted ? "Paused" : (decision.message ?? viewMessage ?? b.message)
+        let findMessage = (machine.phase == .open && insideOffset == nil) ? updateFindPortal(portalWorld: portalWorld, now: now) : nil
+        let msg = interrupted ? "Paused" : (decision.message ?? findMessage ?? viewMessage ?? b.message)
         setInstruction(msg ?? "", warning: decision.message != nil || (!b.insideWorld && b.message != nil))
         if machine.phase == .open {
             diagnostics.soakTick(tracking: qualityText, corrections: corrections, maxCorrectionCm: Double(maxCorrection * 100), tier: tier.rawValue)
@@ -718,6 +886,7 @@ final class PortalController: NSObject, ARSessionDelegate, UIGestureRecognizerDe
         if model.canConfirm != can { model.canConfirm = can }
         if machine.phase != .adjusting && machine.phase != .aiming { preview?.hide() }
         if machine.phase == .aiming { displayPreviewPos = nil }
+        if machine.phase != .aiming && model.canCreate { model.canCreate = false }
     }
 
     private func setInstruction(_ s: String, warning: Bool) {

@@ -26,6 +26,19 @@ texture (not a blank white wall/floor), in a clear area.
 | 19 | Slowly cross back and forth near the threshold | no opaque haze, blank-view flash, or rapid mode flicker; record any near-plane artefacts |
 | 20 | Interrupt tracking near or inside the threshold, then recover | no false crossing inferred across the interruption; Close remains available |
 
+## v1.2.2 Easy placement (do these first)
+
+| # | Do this | Expect / record |
+|---|---|---|
+| 21 | Fresh install → Start → point at an ordinary plain wall 1-3 m away | glowing cyan doorway outline on the wall within a few seconds; chip says "Wall found" or "Wall estimated"; record seconds until CREATE PORTAL is enabled |
+| 22 | Tap CREATE PORTAL | doorway appears immediately where the outline was, standing on the floor; "Portal placed on the wall" banner |
+| 23 | Point at open space or a wall >4.5 m away | chip "No wall - standing doorway"; CREATE places a freestanding doorway ~2.2 m ahead, facing you |
+| 24 | Stand ~0.4 m from a wall | amber outline, "Step back about a metre from the wall"; button disabled until you step back |
+| 25 | Turn fully away from the placed portal | "Find Portal" button appears; its arrow points the right way; tapping gives a turn instruction |
+| 26 | MOVE PORTAL, aim elsewhere, CREATE | old doorway gone, new one placed, no full rescan needed |
+| 27 | RESTART SCAN before and after placing | fresh scan, preview returns within seconds |
+| 28 | Diagnostics → turn Easy Mode off | old pin/drag/Open flow still works |
+
 Please report: phone model, iOS build, fps mean / p95 / % over budget, memory at launch and after
 10 min, thermal state at the end, max correction (cm), and anything that looked wrong. A photo or
 screen recording helps a lot for tuning exposure and rain brightness.

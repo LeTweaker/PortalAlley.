@@ -17,6 +17,8 @@ public enum ExperienceEvent: Equatable, Sendable {
     case trackingUsable(Bool)
     case placementValid(Bool)
     case tap
+    /// Easy Mode: CREATE PORTAL places straight from the live preview.
+    case create
     case confirm
     case back
     case openingFinished
@@ -49,6 +51,8 @@ public struct ExperienceStateMachine: Sendable {
             phase = .adjusting
         case (.adjusting, .back):
             phase = trackingUsable ? .aiming : .scanning
+        case (.aiming, .create) where placementValid && trackingUsable:
+            phase = .opening
         case (.adjusting, .confirm) where placementValid:
             phase = .opening
         case (.opening, .openingFinished):

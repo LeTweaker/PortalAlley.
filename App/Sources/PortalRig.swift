@@ -278,33 +278,48 @@ final class PortalRig {
     }
 }
 
-/// Thin corner marks aligned to the actual wall opening.
+/// Placement preview: a glowing outline of the doorway where it will appear.
 @MainActor
 final class PreviewRig {
     let anchor = AnchorEntity(world: matrix_identity_float4x4)
     let root = Entity()
-    private var markers: [ModelEntity] = []
-    private let validMat = UnlitMaterial(color: UIColor(red: 0.2, green: 0.9, blue: 0.95, alpha: 1))
-    private let invalidMat = UnlitMaterial(color: UIColor(red: 1, green: 0.65, blue: 0.2, alpha: 1))
+    private var strokes: [ModelEntity] = []
+    private var fill: ModelEntity?
+    // Unlit, slightly over-bright colours read as a glow on the camera image.
+    private let validMat = UnlitMaterial(color: UIColor(red: 0.35, green: 0.95, blue: 1.0, alpha: 1))
+    private let invalidMat = UnlitMaterial(color: UIColor(red: 1.0, green: 0.68, blue: 0.22, alpha: 1))
+    private var validFill = UnlitMaterial(color: UIColor(red: 0.3, green: 0.9, blue: 1.0, alpha: 1))
+    private var invalidFill = UnlitMaterial(color: UIColor(red: 1.0, green: 0.65, blue: 0.2, alpha: 1))
     private var lastValid: Bool?
 
+    /// v1.2.2: the whole doorway is outlined (opening + outer frame, 2.5 cm
+    /// strokes) with a translucent fill, so the preview is obvious at 1-4 m.
+    /// v1.2.1 drew eight 9 mm corner ticks, which were easy to miss.
     init(assets: PortalAssets) throws {
         let dims = assets.dims
-        let hw = dims.openHalfWidth
-        let z = dims.frameFrontZ + 0.01
-        func stroke(_ size: SIMD3<Float>, _ position: SIMD3<Float>) {
-            let e = ModelEntity(mesh: .generateBox(size: size), materials: [validMat])
+        validFill.blending = .transparent(opacity: .init(floatLiteral: 0.22))
+        invalidFill.blending = .transparent(opacity: .init(floatLiteral: 0.16))
+        let z = dims.frameFrontZ + 0.012
+        func bar(_ size: SIMD3<Float>, _ position: SIMD3<Float>) {
+            let e = ModelEntity(mesh: .generateBox(size: size, cornerRadius: min(size.x, size.y) * 0.4), materials: [validMat])
             e.position = position
-            markers.append(e)
+            strokes.append(e)
             root.addChild(e)
         }
-        for x in [Float(-1), 1] {
-            for top in [false, true] {
-                let y = top ? dims.openY1 : dims.openY0
-                stroke(SIMD3(0.16, 0.009, 0.009), SIMD3(x * (hw - 0.08), y, z))
-                stroke(SIMD3(0.009, 0.16, 0.009), SIMD3(x * hw, y + (top ? -0.08 : 0.08), z))
-            }
+        func rectangle(halfWidth hw: Float, y0: Float, y1: Float, thickness t: Float) {
+            let h = y1 - y0
+            bar(SIMD3(2 * hw + t, t, t), SIMD3(0, y0, z))
+            bar(SIMD3(2 * hw + t, t, t), SIMD3(0, y1, z))
+            bar(SIMD3(t, h, t), SIMD3(-hw, y0 + h / 2, z))
+            bar(SIMD3(t, h, t), SIMD3(hw, y0 + h / 2, z))
         }
+        rectangle(halfWidth: dims.openHalfWidth, y0: dims.openY0, y1: dims.openY1, thickness: 0.025)
+        rectangle(halfWidth: dims.outerHalfWidth, y0: 0.0, y1: dims.outerTop, thickness: 0.012)
+        let f = ModelEntity(mesh: .generatePlane(width: 2 * dims.openHalfWidth, height: dims.openY1 - dims.openY0),
+                            materials: [validFill])
+        f.position = SIMD3(0, (dims.openY0 + dims.openY1) / 2, z - 0.004)
+        root.addChild(f)
+        fill = f
         anchor.addChild(root)
         root.isEnabled = false
     }
@@ -313,7 +328,8 @@ final class PreviewRig {
         root.isEnabled = true
         root.setTransformMatrix(transform, relativeTo: nil)
         if lastValid != valid {
-            for marker in markers { marker.model?.materials = [valid ? validMat : invalidMat] }
+            for s in strokes { s.model?.materials = [valid ? validMat : invalidMat] }
+            fill?.model?.materials = [valid ? validFill : invalidFill]
             lastValid = valid
         }
     }
