@@ -1,0 +1,33 @@
+name: Fetch a Sketchfab capture for review (needs free SKETCHFAB_TOKEN)
+# Manual only. Candidate Tokyo captures (all CC BY, downloadable, verified in
+# docs/V1_4.md):
+#   Restaurant in the morning - Shinjuku, Tokyo  (Azad Balabanian)
+#   Scene near Kanda station                     (nari4D)
+#   Tokyo Alley 3                                (Geopogo)
+# Paste the model UID from the Sketchfab URL. Nothing is purchased.
+on:
+  workflow_dispatch:
+    inputs:
+      uid:
+        description: Sketchfab model UID (the hex id at the end of the model URL)
+        required: true
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download (licence checked)
+        env:
+          SKETCHFAB_TOKEN: ${{ secrets.SKETCHFAB_TOKEN }}
+        run: python3 Tools/fetch_capture.py "${{ inputs.uid }}" out
+      - name: Publish to assets/capture-<uid>
+        run: |
+          B="assets/capture-${{ inputs.uid }}"
+          cd out
+          git init -q -b "$B"
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A && git commit -q -m "Capture ${{ inputs.uid }} for review"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$B"

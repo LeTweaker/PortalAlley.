@@ -30,6 +30,7 @@
   const MODE = Q.get("mode") || "wall";           // wall | floor | ceiling
   const STYLE = Q.get("style") || "subtle";       // subtle | classic
   const ASCALE = Number(Q.get("scale") || 1), AROT = Number(Q.get("rot") || 0);
+  const DEST = Q.get("dest");                    // destination id (manifest.destinations); default from manifest
   const AIM = vec(Q.get("aim"), MODE === "floor" ? [0, 0, -1.6] : (MODE === "ceiling" ? [0, 2.6, -1.4] : null));
   const W = Number(Q.get("w") || 540), H = Number(Q.get("h") || 1170);
   const BASE = "../../";
@@ -105,7 +106,7 @@
     const centre = [0, (dims.openY0 + dims.openY1) / 2, dims.occluderZ];
     return fromCols(R[0], R[1], R[2], centre.map((v, i) => v - ra[i]));
   }
-  const CLIP = MODE === "floor" ? APERTURE.floor[1] / 20 : (MODE === "ceiling" ? 0.5 + APERTURE.ceiling[1] / 20 : 0);
+  let CLIP = MODE === "floor" ? APERTURE.floor[1] / 20 : (MODE === "ceiling" ? 0.5 + APERTURE.ceiling[1] / 20 : 0);
   function apertureAdjust(dims) {
     const a = AROT * Math.PI / 180, c = Math.cos(a) * ASCALE, sn = Math.sin(a) * ASCALE;
     const pv = [0, MODE === "wall" ? 0 : (dims.openY0 + dims.openY1) / 2, 0];
@@ -231,6 +232,11 @@
       vec3 e=texture(uBase,usd_uv(uv)).rgb*uTint; frag=vec4(to_srgb(shade_emissive(vPos,normalize(vNrm),v,e,uPrm,uTime,a_fog_ref(uClip))),1.0);} `,
     alleyWindow: `void main(){ CLIP(); vec3 v=V(); vec3 n=normalize(vNrm); vec2 uv=vUV+window_parallax(n,v,uPrm.y);
       vec3 interior=texture(uBase,usd_uv(uv)).rgb; frag=vec4(to_srgb(shade_window(vPos,n,v,interior,uPrm,uTime,uLightCount,a_fog_ref(uClip))),1.0);} `,
+    videoScreen: `void main(){ frag=vec4(to_srgb(texture(uBase,usd_uv(vUV)).rgb),1.0);} `,
+    captureUnlit: `void main(){ CLIP(); vec3 c=texture(uBase,usd_uv(vUV)).rgb*uTint; frag=vec4(to_srgb(shade_capture(c,uPrm)),1.0);} `,
+    captureSky: `void main(){ CLIP(); frag=vec4(to_srgb(shade_capture_sky(vPos,uTint,uPrm.xyz)),1.0);} `,
+    captureRain: `void main(){ CLIP(); vec2 uv=vUV; uv.y=uv.y+uTime*uPrm.x/6.0+uPrm.y; float st=texture(uBase,usd_uv(uv)).r;
+      vec4 c=shade_capture_rain(vPos,st,uTint,uPrm); frag=vec4(to_srgb(c.rgb),c.a);} `,
     alleySky: `void main(){ CLIP(); vec3 c=texture(uBase,usd_uv(vUV)).rgb; frag=vec4(to_srgb(shade_sky(c,uPrm)),1.0);} `,
     alleyRain: `void main(){ CLIP(); vec2 uv=vUV; uv.y=uv.y+uTime*uPrm.x/6.0+uPrm.y; float s=texture(uBase,usd_uv(uv)).r;
       vec4 c=shade_rain(vPos,s,uPrm,uTime,uLightCount,a_fog_ref(uClip)); frag=vec4(to_srgb(c.rgb),c.a);} `,
@@ -298,8 +304,20 @@
     const tex = {};
     await Promise.all(Object.entries(manifest.textures).map(async ([k, info]) => { tex[k] = await loadTexture(info, low); }));
 
+    const destId = DEST || manifest.defaultDestination || "illustrated";
+    const dest = (manifest.destinations || {})[destId] || { kind: "illustrated", mesh: "alley" };
+    const worldMesh = QUALITY === "low" && dest.meshLow ? dest.meshLow : dest.mesh;
     const meshes = {};
-    for (const [k, m] of Object.entries(manifest.meshes)) meshes[k] = parsePMSH(await fetchBuf("App/Resources/Portal/" + m.file));
+    const meshKeys = ["frame", "portal_aux"].concat(worldMesh ? [worldMesh] : []);
+    for (const k of meshKeys) meshes[k] = parsePMSH(await fetchBuf("App/Resources/Portal/" + manifest.meshes[k].file));
+    // Cinematic: a decoded frame of the bundled H.264 clip (headless Chrome
+    // under virtual time does not deliver <video> frames); frames are made by
+    // ffmpeg from App/Resources/Portal/video into Tools/preview/generated/footage
+    if (dest.kind === "video") {
+      const stem = dest.file.split("/").pop().replace(".mp4", "");
+      const t = TIME < 2.5 ? 1 : (TIME < 6 ? 4 : 8);
+      tex.__video = await loadTexture({ file: `../../../Tools/preview/generated/footage/${stem}_t${t}.jpg`, semantic: "color" }, false);
+    }
     const dims = manifest.dimensions;
 
     function upload(part) {
@@ -340,14 +358,14 @@
     const PA = mul(P, A), PW = mul(P, Wm);
     const APERTURE_CHUNKS = new Set(["frame", "occluder", "occluder_exact", "leaf", "shadow", "spill", "veil", "veil_exact", "seam", "footprint", "trim", "reveal"]);
     const parts = [];
-    for (const k of ["frame", "portal_aux", "alley"]) for (const p of meshes[k]) {
+    for (const k of meshKeys) for (const p of meshes[k]) {
       const u = upload(p);
       u.world = !APERTURE_CHUNKS.has(p.name);
       u.model = u.world ? PW : PA;
       parts.push(u);
     }
     // floor / ceiling views see all around: close the sky (mirrors PortalRig full sky)
-    if (MODE !== "wall") {
+    if (MODE !== "wall" && dest.kind === "illustrated") {
       const Pp = [], Nn = [], Uu = [], Ii = [], na = 48, ne = 24, R = 110;
       for (let j = 0; j <= ne; j++) for (let i = 0; i <= na; i++) {
         const el = -Math.PI / 2 + Math.PI * j / ne, az = 2 * Math.PI * i / na;
@@ -358,6 +376,27 @@
       const sky = upload({ name: "fullsky", mat: "sky", pos: new Float32Array(Pp), nrm: new Float32Array(Nn), uv: new Float32Array(Uu), idx: new Uint32Array(Ii) });
       sky.world = true; sky.model = PW; sky.cullNone = true;
       parts.push(sky);
+    }
+    if (dest.kind === "video") {
+      const fit = (depth, aspect) => {
+        const zP = dims.occluderZ - depth, a = 35 * Math.PI / 180; let lo = [1e9, 1e9], hi = [-1e9, -1e9];
+        const cs = [[-dims.openHalfWidth, dims.openY0], [dims.openHalfWidth, dims.openY0], [-dims.openHalfWidth, dims.openY1], [dims.openHalfWidth, dims.openY1]];
+        for (const d of [1.2, 4.0]) for (const ang of [-a, 0, a]) for (const h of [0.9, 2.0]) {
+          const v = [Math.sin(ang) * d, h, Math.cos(ang) * d];
+          for (const c of cs) { const k = (zP - v[2]) / (dims.occluderZ - v[2]); const x = v[0] + (c[0] - v[0]) * k, y = v[1] + (c[1] - v[1]) * k;
+            lo = [Math.min(lo[0], x), Math.min(lo[1], y)]; hi = [Math.max(hi[0], x), Math.max(hi[1], y)]; }
+        }
+        let w = hi[0] - lo[0], h = hi[1] - lo[1]; if (w / h < aspect) w = h * aspect; else h = w / aspect;
+        return { c: [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, zP], w, h };
+      };
+      const sc = fit(dest.screenDepth || 2.5, dest.aspect || 16 / 9);
+      const quad = (name, mat, c, w, h, z) => upload({ name, mat, pos: new Float32Array([c[0] - w / 2, c[1] - h / 2, z, c[0] + w / 2, c[1] - h / 2, z, c[0] + w / 2, c[1] + h / 2, z, c[0] - w / 2, c[1] + h / 2, z]),
+        nrm: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]), uv: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), idx: new Uint32Array([0, 1, 2, 0, 2, 3]) });
+      manifest.materials.__screen = { shader: "videoScreen", textures: { baseColor: "__video" } };
+      manifest.materials.__matte = { shader: "videoScreen", textures: { baseColor: "black" } };
+      for (const [n, m, w, h, z] of [["screen", "__screen", sc.w, sc.h, sc.c[2]], ["matte", "__matte", sc.w * 6, sc.h * 6, sc.c[2] - 0.05]]) {
+        const q = quad(n, m, sc.c, w, h, z); q.world = true; q.model = PW; parts.push(q);
+      }
     }
     const room = upload(roomMesh());
     room.model = I4;
@@ -415,6 +454,9 @@
     const visible = (p) => {
       if (["footprint", "spill", "leaf", "shadow"].includes(p.name) || styleHides.has(p.name)) return false;
       if (p.name === "backcap" && MODE === "wall") return false;
+      if (p.name === "skyfull" && MODE === "wall") return false;
+      if (p.name === "sky" && MODE !== "wall" && dest.kind === "capture") return false;
+      if (p.name === "rain" && Q.get("rain") === "0") return false;
       if (p.world && !B.worldVisible) return false;
       if (low && p.mat.startsWith("rain_") && ["rain_1", "rain_3", "rain_5"].includes(p.mat)) return false;
       return true;
@@ -443,7 +485,7 @@
     }
 
     // 3. opaque
-    const transparentShaders = new Set(["alleyRain", "alleySteam", "alleyDecal", "portalVeil", "portalSeam", "contactShadow", "floorSpill", "previewGhost"]);
+    const transparentShaders = new Set(["captureRain", "alleyRain", "alleySteam", "alleyDecal", "portalVeil", "portalSeam", "contactShadow", "floorSpill", "previewGhost"]);
     let drawn = 0;
     for (const p of parts) {
       if (!visible(p) || p.name === "occluder" || p.name === "occluder_exact") continue;
@@ -471,7 +513,7 @@
         mat.params[1] = 0.5 * OPEN * (2 * (subtle ? dims.openHalfWidth : dims.holeHalfWidth)) / 1.0;
         if (subtle) mat.tint = [1.0, 0.9, 0.78];
       }
-      if (mat.shader === "alleyRain" || mat.shader === "alleySteam") gl.disable(gl.CULL_FACE); else gl.enable(gl.CULL_FACE);
+      if (mat.shader === "alleyRain" || mat.shader === "alleySteam" || mat.shader === "captureRain") gl.disable(gl.CULL_FACE); else gl.enable(gl.CULL_FACE);
       setCommon(progs[mat.shader], mat, p); draw(p); drawn++;
     }
     gl.depthMask(true); gl.disable(gl.BLEND);

@@ -1,8 +1,12 @@
 # PortalAlley
 
 A native iPhone AR portal: open a window in a wall, the floor or the ceiling and look through it
-into a rainy night back alley in Tokyo ("ほたる横丁", fictional). ARKit 6-DoF world
+into another place. Since 1.4 the default destination is a real photogrammetry capture of an
+alley (London, used as the proof scene until a Tokyo capture is fetched), with a Cinematic mode
+showing genuine licensed Tokyo rain footage. The v1.3 illustrated Tokyo alley remains as a fallback. ARKit 6-DoF world
 tracking, RealityKit rendering, custom Metal surface shaders, bundled assets, no network.
+
+**Status (1.4.0):** see [docs/V1_4.md](docs/V1_4.md) for the architecture, sources and limitations.
 
 **Status (1.3.0):**
 - Compiles and packages on GitHub Actions (macOS runner) into an unsigned IPA.
@@ -30,6 +34,16 @@ Install guide: **[docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md)**. If you do
 - LiDAR is optional. On LiDAR models it enables: room-side real-world occlusion and the
   "clear area" placement check. Everything else works without it.
 - Camera permission. Sound respects the silent switch.
+
+## What's new in 1.4.0
+
+A **Spatial / Cinematic** picker:
+- **Spatial** is a 3D photogrammetry capture with real parallax.
+- **Cinematic** is real Tokyo footage on a screen set behind the opening, and it says so when
+  you get too close.
+
+The 1.3 alley is still available in diagnostics. Renders, sources and the honest limitations are
+in **[docs/V1_4.md](docs/V1_4.md)**.
 
 ## What's new in 1.3.0
 

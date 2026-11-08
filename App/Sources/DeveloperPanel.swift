@@ -37,6 +37,8 @@ struct DeveloperPanel: View {
             }
             .pickerStyle(.segmented)
             Toggle("Easy Mode (CREATE PORTAL button)", isOn: Binding(get: { model.easyMode }, set: { model.setEasyMode($0) }))
+            Toggle("Illustrated alley (v1.3) instead of the 3D capture", isOn: Binding(get: { model.illustratedFallback }, set: { model.setIllustratedFallback($0) }))
+            Toggle("Rain over the 3D capture", isOn: Binding(get: { model.rainOverlay }, set: { model.setRainOverlay($0) }))
             Toggle("Classic doorway frame (instead of the cut edge)", isOn: Binding(get: { model.classicBoundary }, set: { model.setClassicBoundary($0) }))
             if model.lidarSupported {
                 Toggle("LiDAR occlusion (room side only)", isOn: Binding(get: { model.lidarOcclusion }, set: { model.setLidar($0) }))
